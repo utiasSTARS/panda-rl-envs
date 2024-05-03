@@ -1,2 +1,2 @@
-# real-robot-rl-envs
-Real robot RL envs
+# real-arm-rl-envs
+Real arm RL envs
