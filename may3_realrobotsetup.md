@@ -22,7 +22,7 @@
    3. etc.
 
 # force-torque tests
-1. connect force torque sensor to
+1. attempt basic impedance control with xarm + force torque...but only if it takes <1 day to set up.
 
 # camera tests
 1. azure seems like installing alone would be a huge hassle
@@ -41,6 +41,7 @@
 - set_servo_cartesian_aa also allows setting motion relative to current pose, but seems to require/expect sending commands at a high frequency, and also attempts to move to a pose "as fast as possible?"
   - "Servo_cartesian motion: move to the given cartesian position with the fastest speed (1m/s) and acceleration (unit: mm)"
   - looks like set_tool_position might be more ideal since it will already generate smoother paths...unless the paths suck, and then we'll have to think more about it.
+- before you make all the code to allow running a control loop and potentially handle it with threading, just need to verify that if we interrupt a current motion, the interrupt works okay.
 
 ## set_position
 - has a `radius` option that seems like it'll help interpolate when position changes
