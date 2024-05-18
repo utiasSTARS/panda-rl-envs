@@ -13,14 +13,27 @@
 
 # May 17 TODO
 - [x] Check.. does FR3 really have different joint limits? and if so, we should probably add that to polymetis?
-- [ ] on real panda, verify that my local polymetis, which was NOT built with libfranka 0.10.0, talks to the NUC polymetis
-- [ ] Set up basic panda class/tests to test RL exploration
-  - [ ] if this looks good in polymetis sim, we'll test on real robot
-  - [ ] if this looks good on real robot, doesn't cause significant errors, and allows gentle collisions with the world, we'll just move forward with this
-    - [ ] doing all of this with xarm + force torque will require ~a day, minimum, to set up, so that is now lower priority than just using the robot we already have
+- [x] on real panda, verify that my local polymetis, which was NOT built with libfranka 0.10.0, talks to the NUC polymetis
+  - [x] confirmed that this works!!
+- [x] Set up basic panda class/tests to test RL exploration
+  - [x] if this looks good in polymetis sim, we'll test on real robot
+  - [x] if this looks good on real robot, doesn't cause significant errors, and allows gentle collisions with the world, we'll just move forward with this
+    - [x] doing all of this with xarm + force torque will require ~a day, minimum, to set up, so that is now lower priority than just using the robot we already have
+- [ ] test gripper
+  - [ ] 2f85 appears to work well
+  - [ ] gripper is launched with `launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0`..we'll add somewhere
 - [ ] investigate camera/object pose tracking options
   - [ ] very well might be the case that it makes the most sense to just use AR tags, but would be nice to avoid
 - [ ] assuming RL exploration works on real robot, we can get the entire interface with rl_sandbox (training between episodes, etc.) working exclusively in polymetis sim (for e.g. some basic reaching task to start)
+
+
+## Gripper max settings according to Phil
+opening : float
+    Opening in millimeters. Must be between 0 and 85 mm.
+speed : float
+    Speed in mm/s. Must be between 20 and 150 mm/s.
+force : float
+    Force in N. Must be between 20 and 235 N.
 
 
 ## TODOS

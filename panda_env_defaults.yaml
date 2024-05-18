@@ -1,5 +1,5 @@
 # panda settings
-server_ip: "192.168.2.2"
+server_ip: "192.168.2.100"  # robot is 192.168.2.2
 ee_config_json: null
 
 # limits
@@ -16,7 +16,3 @@ control_hz: 5
 
 # state
 only_positive_ee_quat: true
-
-
-
-

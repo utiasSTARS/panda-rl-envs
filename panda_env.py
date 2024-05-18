@@ -34,26 +34,29 @@ class PandaExploreEnv:
             server_ip=self.cfg['server_ip'],
             delta_pos_limit=self.cfg['max_trans_vel'] / self.cfg['control_hz'],
             delta_rot_limit=self.cfg['max_rot_vel'] / self.cfg['control_hz'],
-            home_joints=self.cfg['home_joints'],
+            home_joints=self.cfg['reset_joints'],
             only_positive_ee_quat=self.cfg['only_positive_ee_quat'],
             ee_config_json=self.cfg['ee_config_json'],
             sim=self.cfg['server_ip'] == 'localhost'
         )
 
         # reset
+        self.arm_client.get_and_update_state()
         self.cfg['reset_pose'] = self.cfg['reset_pose'] if self.cfg['reset_pose'] is not None else\
             self.arm_client.EE_pose.get_array_euler(axes='sxyz')
         self._reset_base_tool_tf_arr = np.array(self.cfg['reset_pose'])
         self._reset_base_tool_pose = PoseTransformer(self._reset_base_tool_tf_arr, 'euler', axes='sxyz')
-        self._reset_base_tool_pose.header.frame_id = self.state_base_frame
+        self._reset_base_tool_pose.header.frame_id = "panda_link0"
 
         # control
         self.rate = Rate(self.cfg['control_hz'])
+        self._max_trans_vel_norm = np.linalg.norm(np.ones(3))  # TODO assuming 3-DOF for now
 
         print("Env initialized!")
 
     def reset(self):
-        reset_shift = np.array(self.cfg['reset_pose']) + np.random.uniform(
+        self.arm_client.get_and_update_state()
+        reset_shift = np.random.uniform(
             low=-np.array(self.cfg['init_gripper_random_lim']) / 2,
             high=np.array(self.cfg['init_gripper_random_lim']) / 2,
             size=6)
@@ -75,18 +78,46 @@ class PandaExploreEnv:
         if attempts >= 5:
             raise ValueError("Polymetis controller wouldn't start.")
 
-        obs = self._prepare_obs()
+        obs, _ = self.prepare_obs()
         return obs
 
-    def _prepare_obs(self):
-        return self.arm_client.EE_pose.get_array_quat()
+    def prepare_obs(self):
+        # overwrite with child classes
+        self.arm_client.get_and_update_state()
+        pose = self.arm_client.EE_pose.get_array_quat()
+        return pose, {'pose': pose}
 
-    def step(self, action):
+    def get_rew(self, obs, act):
+        # overwrite with child classes
+        return 0
+
+    def get_done(self, obs, act):
+        return False
+
+    def get_info(self, obs_dict):
+        return {**obs_dict}
+
+    def step(self, act):
+        act = np.array(act)
+
         # TODO hardcoding delta pos only for now
-        delta_trans = np.array(action[:3])
+        # actions are rescaled s.t. +1 in all dimensions gives a movement of corresponding max vel
+        # also assuming that actions are clipped to +1,-1, but env will force that anyways
+        delta_trans = act[:3]
+        delta_trans = delta_trans / self._max_trans_vel_norm * self.arm_client._delta_pos_limit
+        # act[3:] = self.cfg['max_rot_vel'] * act[3:]  # TODO handle once delta rot added
+
         self.arm_client.shift_EE_by(translation=delta_trans, base_frame=True, rot_base_frame=True)
 
-        # TODO continue here!
+        self.rate.sleep()
+
+        self.arm_client.get_and_update_state()
+        obs, obs_dict = self.prepare_obs()
+        rew = self.get_rew(obs, act)
+        done = self.get_done(obs, act)
+        info = self.get_info(obs_dict)
+
+        return obs, rew, done, info
 
 
 class SimPandaExploreEnv(PandaExploreEnv):
