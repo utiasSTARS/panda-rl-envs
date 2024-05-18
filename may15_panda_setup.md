@@ -12,7 +12,8 @@
 
 
 # May 17 TODO
-- [ ] Check.. does FR3 really have different joint limits? and if so, we should probably add that to polymetis?
+- [x] Check.. does FR3 really have different joint limits? and if so, we should probably add that to polymetis?
+- [ ] on real panda, verify that my local polymetis, which was NOT built with libfranka 0.10.0, talks to the NUC polymetis
 - [ ] Set up basic panda class/tests to test RL exploration
   - [ ] if this looks good in polymetis sim, we'll test on real robot
   - [ ] if this looks good on real robot, doesn't cause significant errors, and allows gentle collisions with the world, we'll just move forward with this

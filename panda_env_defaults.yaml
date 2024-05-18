@@ -1,0 +1,22 @@
+# panda settings
+server_ip: "192.168.2.2"
+ee_config_json: null
+
+# limits
+max_trans_vel: .3  # m/s
+max_rot_vel: .5    # rad/s
+
+# reset
+reset_joints: null  # plan is to not use this
+reset_pose: null
+init_gripper_random_lim: [0, 0, 0, 0, 0, 0]
+
+# control
+control_hz: 5
+
+# state
+only_positive_ee_quat: true
+
+
+
+
