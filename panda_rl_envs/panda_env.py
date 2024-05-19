@@ -19,7 +19,7 @@ from transform_utils.pose_transforms import (
     matrix2pose,
 )
 
-class PandaExploreEnv(gym.Env):
+class PandaEnv(gym.Env):
     def __init__(self,
                  config_dict={},
                  config_file=None
@@ -51,20 +51,27 @@ class PandaExploreEnv(gym.Env):
 
         # control
         self.rate = Rate(self.cfg['control_hz'])
-        self._max_trans_vel_norm = np.linalg.norm(np.ones(3))  # TODO assuming 3-DOF for now
+        self._max_trans_vel_norm = np.linalg.norm(np.ones(3))
+        self._max_rot_vel_norm = np.linalg.norm(np.ones(3))
+        self.cfg['valid_dof'] = np.array(self.cfg['valid_dof'])
 
         # gripper
         if self.cfg['grip_client']:
             self.grip_client = PandaGripperClient(server_ip='localhost', fake=self.cfg['server_ip'] == 'localhost')
 
         # observation and action spaces
+        self._rot_in_pose = sum(self.cfg['valid_dof'][3:]) > 0
+        pose_dim = 0
+        pose_dim += sum(self.cfg['valid_dof'][:3])
+        if self._rot_in_pose: pose_dim += 4
+
         obs_dim = \
-            7 * int('pose' in self.cfg['state_data']) + \
+            pose_dim * int('pose' in self.cfg['state_data']) + \
             1 * int('grip_pos' in self.cfg['state_data'])
         self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), dtype=np.float32)
 
-        # TODO hardcoded to 3-DOF for now
-        action_dim = 3 + \
+        action_dim = \
+            sum(self.cfg['valid_dof']) + \
             1 * int(self.cfg['grip_in_action'])
         self.action_space = spaces.Box(-1, 1, (action_dim,), dtype=np.float32)
 
@@ -116,6 +123,12 @@ class PandaExploreEnv(gym.Env):
 
         if 'pose' in self.cfg['state_data']:
             pose = self.arm_client.EE_pose.get_array_quat()
+            valid_pos = pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
+            valid_rot = np.array([])
+            if self._rot_in_pose:
+                valid_rot = pose[3:]
+            pose = np.concatenate([valid_pos, valid_rot])
+
             state_list.append(pose)
             state_dict['pose'] = pose
 
@@ -146,12 +159,12 @@ class PandaExploreEnv(gym.Env):
         if act.shape != self.action_space.shape:
             raise ValueError(f"Env requires act shape {self.action_space.shape}, act supplied has shape {act.shape}")
 
-        # TODO hardcoding delta pos only for now
         # actions are rescaled s.t. +1 in all dimensions gives a movement of corresponding max vel
         # also assuming that actions are clipped to +1,-1, but env will force that anyways
         delta_trans = act[:3]
         delta_trans = delta_trans / self._max_trans_vel_norm * self.arm_client._delta_pos_limit
-        # act[3:] = self.cfg['max_rot_vel'] * act[3:]  # TODO handle once delta rot added
+        delta_rot = act[3:]
+        delta_rot = delta_rot / self._max_rot_vel_norm * self.arm_client._delta_rot_limit
 
         self.arm_client.shift_EE_by(translation=delta_trans, base_frame=True, rot_base_frame=True)
 
@@ -169,7 +182,7 @@ class PandaExploreEnv(gym.Env):
         return obs, rew, done, info
 
 
-class SimPandaExploreEnv(PandaExploreEnv):
+class SimPandaEnv(PandaEnv):
     def __init__(self, config_dict={}, config_file=None) -> None:
         config_dict['server_ip'] = 'localhost'
         super().__init__(config_dict=config_dict, config_file=config_file)

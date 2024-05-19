@@ -21,9 +21,9 @@ config_dict = {
 }
 
 if args.sim:
-    env = SimPandaExploreEnv(config_dict=config_dict)
+    env = SimPandaEnv(config_dict=config_dict)
 else:
-    env = PandaExploreEnv(config_dict=config_dict)
+    env = PandaEnv(config_dict=config_dict)
 
 num_steps = round(args.ep_len * env.cfg['control_hz'])
 

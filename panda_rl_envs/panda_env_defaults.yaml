@@ -13,6 +13,7 @@ init_gripper_random_lim: [0, 0, 0, 0, 0, 0]
 
 # control
 control_hz: 5
+valid_dof: [1, 1, 1, 1, 1, 1]
 
 # state
 only_positive_ee_quat: true
