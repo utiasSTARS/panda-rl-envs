@@ -1,17 +1,4 @@
-# General notes
-- There was no clean way to set an interruptable controller on the xArm without resorting to ROS (which *maybe* would have been okay)
-- Instead, going to switch over to panda + polymetis (or at least attempt)
-- if this turns out to be a hassle, might go ahead and do xarm + ROS + control similar to thing_control servo
-- installation of polymetis on nuc: requires custom libfranka for FR3, which requires local build/install, which didn't work until i reinstall torch with:
-  - `pip install --force-reinstall torch==1.13.1 --index-url https://download.pytorch.org/whl/cpu`
-
-# Thinking again about Xarm
-- the ros controller has a setup specifically for what i want to do:
-  - https://github.com/xArm-Developer/xarm_ros/tree/master/examples#6-online-target-update
-- let's try that in sim
-
-
-# May 17 TODO
+# May 19 TODO
 - [x] Check.. does FR3 really have different joint limits? and if so, we should probably add that to polymetis?
 - [x] on real panda, verify that my local polymetis, which was NOT built with libfranka 0.10.0, talks to the NUC polymetis
   - [x] confirmed that this works!!
@@ -19,13 +6,13 @@
   - [x] if this looks good in polymetis sim, we'll test on real robot
   - [x] if this looks good on real robot, doesn't cause significant errors, and allows gentle collisions with the world, we'll just move forward with this
     - [x] doing all of this with xarm + force torque will require ~a day, minimum, to set up, so that is now lower priority than just using the robot we already have
-- [ ] test gripper
-  - [ ] 2f85 appears to work well
-  - [ ] gripper is launched with `launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0`..we'll add somewhere
+- [x] test gripper
+  - [x] 2f85 appears to work well
+  - [x] gripper is launched with `launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0`..we'll add somewhere
+- [ ] Make a basic position reaching env (including reward + success metric) + sim variation
+- [ ] get sim position env to interface with rl_sandbox (training between episodes, etc.)
 - [ ] investigate camera/object pose tracking options
-  - [ ] very well might be the case that it makes the most sense to just use AR tags, but would be nice to avoid
-- [ ] assuming RL exploration works on real robot, we can get the entire interface with rl_sandbox (training between episodes, etc.) working exclusively in polymetis sim (for e.g. some basic reaching task to start)
-
+  - [ ] this is *slightly* optional, in the sense that we can just use AR-TAGs in the worst case scenario
 
 ## Gripper max settings according to Phil
 opening : float
@@ -63,3 +50,9 @@ force : float
   - this works in sim too, which is nice.
   - should try both on real robot
 
+# Old general notes
+- There was no clean way to set an interruptable controller on the xArm without resorting to ROS (which *maybe* would have been okay)
+- Instead, going to switch over to panda + polymetis (or at least attempt)
+- if this turns out to be a hassle, might go ahead and do xarm + ROS + control similar to thing_control servo
+- installation of polymetis on nuc: requires custom libfranka for FR3, which requires local build/install, which didn't work until i reinstall torch with:
+  - `pip install --force-reinstall torch==1.13.1 --index-url https://download.pytorch.org/whl/cpu`
