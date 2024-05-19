@@ -6,7 +6,7 @@ import time
 
 from xarm import XArmAPI
 
-import utils
+import old.utils as utils
 
 class XArmEnv:
     def __init__(self, hz=5, real_hz=100, arm_ip='192.168.2.229') -> None:

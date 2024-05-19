@@ -1,29 +1,30 @@
-import numpy as np
-import threading
-import queue
 import copy
 import time
 import os
 import pathlib
+
+import numpy as np
 import yaml
+import gym
+from gym import spaces
 
 import panda_polymetis
 from panda_polymetis.utils.poses import geodesic_error
 from panda_polymetis.utils.rate import Rate
 from panda_polymetis.control.panda_client import PandaClient
+from panda_polymetis.control.panda_gripper_client import PandaGripperClient
 from transform_utils.pose_transforms import (
     PoseTransformer,
     pose2array,
     matrix2pose,
 )
 
-class PandaExploreEnv:
+class PandaExploreEnv(gym.Env):
     def __init__(self,
                  config_dict={},
                  config_file=None
                  ):
 
-        # self._config = config_opts
         if config_file is None:
             config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'panda_env_defaults.yaml')
         with open(config_file) as f:
@@ -52,9 +53,35 @@ class PandaExploreEnv:
         self.rate = Rate(self.cfg['control_hz'])
         self._max_trans_vel_norm = np.linalg.norm(np.ones(3))  # TODO assuming 3-DOF for now
 
+        # gripper
+        if self.cfg['grip_client']:
+            self.grip_client = PandaGripperClient(server_ip='localhost', fake=self.cfg['server_ip'] == 'localhost')
+
+        # observation and action spaces
+        obs_dim = \
+            7 * int('pose' in self.cfg['state_data']) + \
+            1 * int('grip_pos' in self.cfg['state_data'])
+        self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), dtype=np.float32)
+
+        # TODO hardcoded to 3-DOF for now
+        action_dim = 3 + \
+            1 * int(self.cfg['grip_in_action'])
+        self.action_space = spaces.Box(-1, 1, (action_dim,), dtype=np.float32)
+
         print("Env initialized!")
 
     def reset(self):
+        if self.cfg['grip_client']:
+            self.grip_client.open()
+            time.sleep(0.2)
+            attempts = 0
+            while not self.grip_client.is_fully_open() and attempts < 5:
+                attempts += 1
+                print(f"Gripper not yet open..try {attempts}/{5}")
+
+            if attempts >= 5:
+                raise ValueError("Gripper is not open.")
+
         self.arm_client.get_and_update_state()
         reset_shift = np.random.uniform(
             low=-np.array(self.cfg['init_gripper_random_lim']) / 2,
@@ -83,9 +110,25 @@ class PandaExploreEnv:
 
     def prepare_obs(self):
         # overwrite with child classes
+        state_list = []
+        state_dict = {}
         self.arm_client.get_and_update_state()
-        pose = self.arm_client.EE_pose.get_array_quat()
-        return pose, {'pose': pose}
+
+        if 'pose' in self.cfg['state_data']:
+            pose = self.arm_client.EE_pose.get_array_quat()
+            state_list.append(pose)
+            state_dict['pose'] = pose
+
+        if 'grip_pos' in self.cfg['state_data']:
+            self.grip_client.get_and_update_state()
+            raw_grip_pos = self.grip_client._pos
+            # normalize to -1, 1, min grip pos is 0
+            max_pos = .5 * self.grip_client.open_width
+            grip_pos = (raw_grip_pos - max_pos) / max_pos
+            state_list.append(np.array([grip_pos]))
+            state_dict['grip_pos'] = grip_pos
+
+        return np.concatenate(state_list), state_dict
 
     def get_rew(self, obs, act):
         # overwrite with child classes
@@ -100,6 +143,9 @@ class PandaExploreEnv:
     def step(self, act):
         act = np.array(act)
 
+        if act.shape != self.action_space.shape:
+            raise ValueError(f"Env requires act shape {self.action_space.shape}, act supplied has shape {act.shape}")
+
         # TODO hardcoding delta pos only for now
         # actions are rescaled s.t. +1 in all dimensions gives a movement of corresponding max vel
         # also assuming that actions are clipped to +1,-1, but env will force that anyways
@@ -108,6 +154,9 @@ class PandaExploreEnv:
         # act[3:] = self.cfg['max_rot_vel'] * act[3:]  # TODO handle once delta rot added
 
         self.arm_client.shift_EE_by(translation=delta_trans, base_frame=True, rot_base_frame=True)
+
+        if self.cfg['grip_in_action']:
+            self.grip_client.open() if act[-1] < 0 else self.grip_client.close()
 
         self.rate.sleep()
 

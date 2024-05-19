@@ -3,8 +3,8 @@ server_ip: "192.168.2.100"  # robot is 192.168.2.2
 ee_config_json: null
 
 # limits
-max_trans_vel: .3  # m/s
-max_rot_vel: .5    # rad/s
+max_trans_vel: .2  # m/s
+max_rot_vel: .4    # rad/s
 
 # reset
 reset_joints: null  # plan is to not use this
@@ -16,3 +16,9 @@ control_hz: 5
 
 # state
 only_positive_ee_quat: true
+state_data: ['pose', 'grip_pos']
+
+# gripper
+grip_client: true  # can have grip client to force gripper open without having gripper in action
+grip_in_action: true
+
