@@ -6,6 +6,9 @@ ee_config_json: null
 max_trans_vel: .2  # m/s
 max_rot_vel: .4    # rad/s
 
+# task
+max_real_time: 10
+
 # reset
 reset_joints: null  # plan is to not use this
 reset_pose: null

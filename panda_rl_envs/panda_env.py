@@ -20,15 +20,21 @@ from transform_utils.pose_transforms import (
 )
 
 class PandaEnv(gym.Env):
-    def __init__(self,
-                 config_dict={},
-                 config_file=None
-                 ):
+    def __init__(self, config_dict={}, config_file=None):
 
-        if config_file is None:
-            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'panda_env_defaults.yaml')
-        with open(config_file) as f:
-            self.cfg = yaml.load(f, Loader=yaml.FullLoader)
+        self.cfg = {}
+
+        # load defaults from default file first
+        def_config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'panda_env_defaults.yaml')
+        with open(def_config_file) as f:
+            self.cfg.update(yaml.load(f, Loader=yaml.FullLoader))
+
+        # override by config file
+        if config_file is not None:
+            with open(config_file) as f:
+                self.cfg.update(yaml.load(f, Loader=yaml.FullLoader))
+
+        # override all with config_dict
         self.cfg.update(config_dict)
 
         self.arm_client = PandaClient(
@@ -40,6 +46,10 @@ class PandaEnv(gym.Env):
             ee_config_json=self.cfg['ee_config_json'],
             sim=self.cfg['server_ip'] == 'localhost'
         )
+
+        # task
+        self._max_episode_steps = round(self.cfg['max_real_time'] * self.cfg['control_hz'])
+        self._elapsed_steps = 0
 
         # reset
         self.arm_client.get_and_update_state()
@@ -78,6 +88,7 @@ class PandaEnv(gym.Env):
         print("Env initialized!")
 
     def reset(self):
+        self._elapsed_steps = 0
         if self.cfg['grip_client']:
             self.grip_client.open()
             time.sleep(0.2)
@@ -147,6 +158,10 @@ class PandaEnv(gym.Env):
         # overwrite with child classes
         return 0
 
+    def get_suc(self, obs, act):
+        # overwrite with child classes
+        return False
+
     def get_done(self, obs, act):
         return False
 
@@ -176,8 +191,15 @@ class PandaEnv(gym.Env):
         self.arm_client.get_and_update_state()
         obs, obs_dict = self.prepare_obs()
         rew = self.get_rew(obs, act)
+        suc = self.get_suc(obs, act)
+        obs_dict['suc'] = suc
         done = self.get_done(obs, act)
         info = self.get_info(obs_dict)
+
+        self._elapsed_steps += 1
+        if self._elapsed_steps >= self._max_episode_steps:
+            info['env_done'] = done
+            done = True
 
         return obs, rew, done, info
 

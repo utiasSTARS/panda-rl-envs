@@ -2,6 +2,7 @@ import time
 import argparse
 
 import numpy as np
+from gym.wrappers.time_limit import TimeLimit
 
 # from panda_rl_envs.panda_env import PandaExploreEnv
 from panda_rl_envs import *
@@ -16,6 +17,7 @@ args = parser.parse_args()
 
 
 config_dict = {
+    'max_real_time': args.ep_len,
     'max_trans_vel': args.max_trans_vel,
     'max_rot_vel': args.max_rot_vel,
 }
@@ -25,16 +27,11 @@ if args.sim:
 else:
     env = PandaEnv(config_dict=config_dict)
 
-num_steps = round(args.ep_len * env.cfg['control_hz'])
-
+done = False
 obs = env.reset()
-
-start_time = time.time()
-
-for i in range(num_steps):
-    # action = np.random.uniform(low=-np.ones(3), high=np.ones(3), size=3)
+while not done:
     action = env.action_space.sample()
-    obs, env.step(action)
+    obs, rew, done, info = env.step(action)
 
-    if (i + 1) % 10 == 0:
-        print(f"Ep at {i + 1}/{num_steps}")
+    if (env._elapsed_steps + 1) % 10 == 0:
+        print(f"Ep at {env._elapsed_steps + 1}/{env._max_episode_steps}")
