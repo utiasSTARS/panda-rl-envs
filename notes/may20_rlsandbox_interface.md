@@ -9,3 +9,4 @@
 - [ ] add ability to restart training in rl_sandbox from a checkpoint
   - [ ] probably checkpoint frequently...maybe every episode? depends on save time
 - [ ] add ability to train between episodes instead of every step
+- [ ] *probably* going to make default for panda-rl-envs env_type frame stack 2
