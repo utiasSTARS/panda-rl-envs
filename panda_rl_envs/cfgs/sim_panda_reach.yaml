@@ -6,3 +6,13 @@ reset_joints: [-0.1393543, -0.0204817, -0.05201414, -2.069126, 0.05058914, 2.002
 reach_goal: [0.3, -0.4, 0.25]
 reach_suc_thresh: 0.02
 reach_suc_time_thresh: 0.5
+
+# control
+valid_dof: [1, 1, 1, 0, 0, 0]
+
+# state
+state_data: ['pose']
+
+# gripper
+grip_client: true
+grip_in_action: false

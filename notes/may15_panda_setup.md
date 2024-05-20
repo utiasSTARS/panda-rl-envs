@@ -9,7 +9,7 @@
 - [x] test gripper
   - [x] 2f85 appears to work well
   - [x] gripper is launched with `launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0`..we'll add somewhere
-- [ ] Make a basic position reaching env (including reward + success metric) + sim variation
+- [x] Make a basic position reaching env (including reward + success metric) + sim variation
 - [ ] get sim position env to interface with rl_sandbox (training between episodes, etc.)
 - [ ] investigate camera/object pose tracking options
   - [ ] this is *slightly* optional, in the sense that we can just use AR-TAGs in the worst case scenario

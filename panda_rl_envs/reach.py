@@ -30,6 +30,13 @@ class PandaReach(PandaEnv):
             self._suc_latch = True
         return self._suc_latch
 
+    def get_suc_examples(self, num_ex):
+        # assuming suc thresh of 1, max dist of suc ex will be sqrt(3) / 3 = 0.577 < 1
+        max_dist = self.cfg['reach_suc_thresh'] / 3
+        suc_ex = self.cfg['reach_goal'] + \
+            np.random.uniform(low=-max_dist, high=max_dist, size=(num_ex, self.observation_space.shape[0]))
+        return suc_ex
+
 
 class SimPandaReach(PandaReach):
     def __init__(self, config_dict={}, config_file=None):
