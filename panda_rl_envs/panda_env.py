@@ -50,6 +50,8 @@ class PandaEnv(gym.Env):
         # task
         self._max_episode_steps = round(self.cfg['max_real_time'] * self.cfg['control_hz'])
         self._elapsed_steps = 0
+        self._prev_obs = None  # for reward/suc calc
+        self._prev_obs_dict = None  # for reward/suc calc
 
         # reset
         self.arm_client.get_and_update_state()
@@ -123,7 +125,9 @@ class PandaEnv(gym.Env):
         if attempts >= 5:
             raise ValueError("Polymetis controller wouldn't start.")
 
-        obs, _ = self.prepare_obs()
+        obs, obs_dict = self.prepare_obs()
+        self._prev_obs = copy.deepcopy(obs)
+        self._prev_obs_dict = copy.deepcopy(obs_dict)
         return obs
 
     def prepare_obs(self):
@@ -154,15 +158,15 @@ class PandaEnv(gym.Env):
 
         return np.concatenate(state_list), state_dict
 
-    def get_rew(self, obs, act):
+    def get_rew(self, obs_dict, prev_obs_dict, act):
         # overwrite with child classes
         return 0
 
-    def get_suc(self, obs, act):
+    def get_suc(self, obs_dict, prev_obs_dict, act):
         # overwrite with child classes
         return False
 
-    def get_done(self, obs, act):
+    def get_done(self, obs_dict, prev_obs_dict, act):
         return False
 
     def get_info(self, obs_dict):
@@ -190,16 +194,19 @@ class PandaEnv(gym.Env):
 
         self.arm_client.get_and_update_state()
         obs, obs_dict = self.prepare_obs()
-        rew = self.get_rew(obs, act)
-        suc = self.get_suc(obs, act)
+        rew = self.get_rew(obs_dict, self._prev_obs_dict, act)
+        suc = self.get_suc(obs_dict, self._prev_obs_dict, act)
         obs_dict['suc'] = suc
-        done = self.get_done(obs, act)
+        done = self.get_done(obs_dict, self._prev_obs_dict, act)
         info = self.get_info(obs_dict)
 
         self._elapsed_steps += 1
         if self._elapsed_steps >= self._max_episode_steps:
             info['env_done'] = done
             done = True
+
+        self._prev_obs = copy.deepcopy(obs)
+        self._prev_obs_dict = copy.deepcopy(obs_dict)
 
         return obs, rew, done, info
 
