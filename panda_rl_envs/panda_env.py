@@ -52,6 +52,8 @@ class PandaEnv(gym.Env):
         self._elapsed_steps = 0
         self._prev_obs = None  # for reward/suc calc
         self._prev_obs_dict = None  # for reward/suc calc
+        self._real_time_step = 1 / self.cfg['control_hz']
+        self._suc_latch = False
 
         # reset
         self.arm_client.get_and_update_state()
@@ -91,6 +93,7 @@ class PandaEnv(gym.Env):
 
     def reset(self):
         self._elapsed_steps = 0
+        self._suc_latch = False
         if self.cfg['grip_client']:
             self.grip_client.open()
             time.sleep(0.2)
