@@ -2,6 +2,7 @@ import copy
 import time
 import os
 import pathlib
+import timeit
 
 import numpy as np
 import yaml
@@ -18,6 +19,8 @@ from transform_utils.pose_transforms import (
     pose2array,
     matrix2pose,
 )
+
+def timer(): return timeit.default_timer()
 
 class PandaEnv(gym.Env):
     def __init__(self, config_dict={}, config_file=None):
@@ -89,6 +92,14 @@ class PandaEnv(gym.Env):
             1 * int(self.cfg['grip_in_action'])
         self.action_space = spaces.Box(-1, 1, (action_dim,), dtype=np.float32)
 
+        # optional simultaneous training
+        self._training_called = False
+        self._updated_bool = None
+        self._training_update_info = None
+
+        # timing debugging
+        self._obs_gen_time = None
+
         print("Env initialized!")
 
     def reset(self):
@@ -159,6 +170,8 @@ class PandaEnv(gym.Env):
             state_list.append(np.array([grip_pos]))
             state_dict['grip_pos'] = grip_pos
 
+        self._obs_gen_time = timer()
+
         return np.concatenate(state_list), state_dict
 
     def get_rew(self, obs_dict, prev_obs_dict, act):
@@ -175,7 +188,7 @@ class PandaEnv(gym.Env):
     def get_info(self, obs_dict):
         return {**obs_dict}
 
-    def step(self, act):
+    def step(self, act, train_func=None):
         act = np.array(act)
 
         if act.shape != self.action_space.shape:
@@ -188,12 +201,28 @@ class PandaEnv(gym.Env):
         delta_rot = act[3:]
         delta_rot = delta_rot / self._max_rot_vel_norm * self.arm_client._delta_rot_limit
 
+        print(f"Obs to act delay: {timer() - self._obs_gen_time}")
+
         self.arm_client.shift_EE_by(translation=delta_trans, base_frame=True, rot_base_frame=True)
 
         if self.cfg['grip_in_action']:
             self.grip_client.open() if act[-1] < 0 else self.grip_client.close()
 
-        self.rate.sleep()
+        # train during step/sleep
+        if train_func:
+            update_tic = timeit.default_timer()
+            self._update_bool, self._training_update_info = train_func()
+            self._training_update_info["agent_update_time"] = [timeit.default_timer() - update_tic]
+            self._training_called = True
+
+        sleep_time = self.rate.sleep()
+        if self._elapsed_steps == 0:
+            sleep_time = self.rate.sleep()  # otherwise first sleep is 0
+        if self._elapsed_steps > 0:
+            if sleep_time == 0:
+                print(f"WARNING: env did not sleep at ts {self._elapsed_steps}, is control delayed?")
+
+        print(f"DEBUG: ts: {self._elapsed_steps}, sleep time: {sleep_time}")
 
         self.arm_client.get_and_update_state()
         obs, obs_dict = self.prepare_obs()
@@ -212,6 +241,12 @@ class PandaEnv(gym.Env):
         self._prev_obs_dict = copy.deepcopy(obs_dict)
 
         return obs, rew, done, info
+
+    def get_train_update(self):
+        if not self._training_called:
+            raise ValueError("get_train_update called without calling step with a train_func")
+        self._training_updated = False
+        return self._update_bool, self._training_update_info
 
 
 class SimPandaEnv(PandaEnv):
