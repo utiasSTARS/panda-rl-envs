@@ -3,15 +3,17 @@ reset_pose: [0.5284425, -0.09963877, 0.436256, -3.075285, -0.006185998, 0.686803
 reset_joints: [-0.1396856, -0.02057456, -0.05217665, -2.06931, 0.05060055, 2.001138, -0.9010438]
 
 # limits
-pos_limits: [[0.6, 0.3, 0.5], [0.1, -0.45, 0.0]]
+pos_limits: [[0.6, 0.15, 0.5], [0.3, -0.15, 0.3]]
 
 # task
-reach_goal: [0.3, -0.4, 0.25]
+# reach_goal: [0.3, -0.4, 0.25]
+reach_goal: [0.33, -0.12, 0.35]
 reach_suc_thresh: 0.02
 suc_time_thresh: 0.5
 
 # aux tasks
-aux_reach_goal: [0.4, 0.2, 0.3]
+# aux_reach_goal: [0.4, 0.2, 0.3]
+aux_reach_goal: [0.57, 0.12, 0.47]
 
 # control
 valid_dof: [1, 1, 1, 0, 0, 0]

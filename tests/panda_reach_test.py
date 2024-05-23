@@ -29,12 +29,13 @@ else:
     env = PandaReach(config_dict=config_dict)
 
 done = False
-ret = 0
+rets = [0, 0]
 obs = env.reset()
 print("Environment reset complete, starting actions in 2s!")
 init_pose = env.arm_client.EE_pose
 suc_reach_pose = copy.deepcopy(init_pose)
-suc_reach_pose.set_pos(np.array(env.cfg['reach_goal']))
+# suc_reach_pose.set_pos(np.array(env.cfg['reach_goal']))
+suc_reach_pose.set_pos(np.array(env.cfg['aux_reach_goal']))
 time.sleep(2)
 while not done:
     # action = env.action_space.sample()
@@ -48,7 +49,14 @@ while not done:
 
     obs, rew, done, info = env.step(np.zeros(env.action_space.shape))
 
-    ret += rew
+    # ret += rew
+    rews = env.get_aux_rew(info['obs_dict'], info['prev_obs_dict'], None)
+    for ret_i in range(len(rets)):
+        rets[ret_i] += rews[ret_i]
 
-    if (env._elapsed_steps) % 10 == 0:
-        print(f"Ep at {env._elapsed_steps}/{env._max_episode_steps}, ret: {ret}, suc: {info['suc']}")
+    sucs = env.get_aux_suc(info['obs_dict'], info['prev_obs_dict'], None)
+
+    # if (env._elapsed_steps) % 10 == 0:
+    #     # print(f"Ep at {env._elapsed_steps}/{env._max_episode_steps}, ret: {ret}, suc: {info['suc']}")
+    #     print(f"Ep at {env._elapsed_steps}/{env._max_episode_steps}, all ret: {rets}, all suc: {sucs}")
+    print(f"Ep at {env._elapsed_steps}/{env._max_episode_steps}, all ret: {rets}, all suc: {sucs}")

@@ -23,25 +23,28 @@ class PandaReach(PandaEnv):
         else:
             raise NotImplementedError()
 
-    def get_suc(self, obs_dict, prev_obs_dict, act, goal_str='reach_goal'):
+    def get_suc(self, obs_dict, prev_obs_dict, act, goal_str='reach_goal', specific_timer=None):
+        if specific_timer is None:
+            specific_timer = self._suc_timer
         if 'pose' in self.cfg['state_data']:
             reached = np.linalg.norm(obs_dict['pose'][:3] - self.cfg[goal_str]) <= self.cfg['reach_suc_thresh']
         elif 'pos_obj_diff' in self.cfg['state_data']:
             reached = np.linalg.norm(obs_dict[f'pos_{goal_str}_diff']) <= self.cfg['reach_suc_thresh']
         else:
             raise NotImplementedError()
-        return self._suc_timer.update_and_get_suc(reached, self._elapsed_steps)
+        return specific_timer.update_and_get_suc(reached, self._elapsed_steps)
 
-    def get_suc_examples(self, num_ex):
+    def get_suc_examples(self, num_ex, goal_str='reach_goal'):
         # assuming suc thresh of 1, max dist of suc ex will be sqrt(3) / 3 = 0.577 < 1
         max_dist = self.cfg['reach_suc_thresh'] / 3
         if self.cfg['state_data'] == ['pose']:
-            return self.cfg['reach_goal'] + \
+            return self.cfg[reach_goal] + \
                 np.random.uniform(low=-max_dist, high=max_dist, size=(num_ex, self.observation_space.shape[0]))
         elif self.cfg['state_data'] == ['pos_obj_diff'] and self.cfg['num_objs'] == 2:
             # now includes both regular and aux diff
+            other_goal_str = 'aux_reach_goal' if goal_str =='reach_goal' else 'reach_goal'
             suc_reach_diff = np.random.uniform(low=-max_dist, high=max_dist, size=(num_ex, sum(self.cfg['valid_dof'][:3])))
-            other_reach_diff = self.cfg['reach_goal'] - self.cfg['aux_reach_goal'] + \
+            other_reach_diff = self.cfg[goal_str] - self.cfg[other_goal_str] + \
                 np.random.uniform(low=-max_dist, high=max_dist, size=(num_ex, sum(self.cfg['valid_dof'][:3])))
             return np.hstack([suc_reach_diff, other_reach_diff])
         else:
@@ -60,7 +63,7 @@ class PandaReach(PandaEnv):
             if t == 'main':
                 rews.append(self.get_rew(obs_dict, prev_obs_dict, act))
             elif t == 'reach':
-                rews.append(self.get_rew(obs_dict, prev_obs_dict, goal_str='aux_reach_goal'))
+                rews.append(self.get_rew(obs_dict, prev_obs_dict, act, goal_str='aux_reach_goal'))
             else:
                 raise NotImplementedError(f"get_aux_rew not defined for task {t}")
 
@@ -77,15 +80,15 @@ class PandaReach(PandaEnv):
                 sucs.append(self.get_suc(obs_dict, prev_obs_dict, act))
             else:
                 suc_bool = False
+                if t not in self._aux_suc_timers:
+                    self._aux_suc_timers[t] = reward_utils.HoldTimer(self._real_time_step, self.cfg['suc_time_thresh'])
                 if t == 'reach':
-                    suc_bool = np.linalg.norm(obs_dict['pose'][:3] - self.cfg['aux_real_goal']) \
-                        <= self.cfg['reach_suc_thresh']
+                    suc_bool = self.get_suc(obs_dict, prev_obs_dict, act,
+                                            goal_str='aux_reach_goal', specific_timer=self._aux_suc_timers[t])
                 else:
                     raise NotImplementedError(f"get_aux_suc not defined for task {t}")
 
-                if t not in self._aux_suc_timers:
-                    self._aux_suc_timers[t] = reward_utils.HoldTimer(self._real_time_step, self.cfg['suc_time_thresh'])
-                sucs.append(self._aux_suc_timers[t].update_and_get_suc(suc_bool, self._elapsed_steps))
+                sucs.append(suc_bool)
 
         return sucs
 
@@ -93,12 +96,10 @@ class PandaReach(PandaEnv):
         suc_ex_dict = dict()
         for t in tasks:
             if t == 'main':
-                suc_ex_dict['main'] = self.get_suc_examples()
+                suc_ex_dict['main'] = self.get_suc_examples(num_ex)
             elif t == 'reach':
-                max_dist = self.cfg['reach_suc_thresh'] / 3
-                suc_ex_dict['reach'] = self.cfg['aux_reach_goal'] + \
-                    np.random.uniform(low=-max_dist, high=max_dist, size=(num_ex, self.observation_space.shape[0]))
-        import ipdb; ipdb.set_trace()
+                suc_ex_dict['reach'] = self.get_suc_examples(num_ex, goal_str='aux_reach_goal')
+        return suc_ex_dict
 
 
 class SimPandaReach(PandaReach):

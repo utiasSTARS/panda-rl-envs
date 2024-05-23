@@ -255,6 +255,8 @@ class PandaEnv(gym.Env):
 
         # print(f"DEBUG: ts: {self._elapsed_steps}, sleep time: {sleep_time}")
 
+        self._elapsed_steps += 1  # used for get_suc
+
         self.arm_client.get_and_update_state()
         obs, obs_dict = self.prepare_obs()
         rew = self.get_rew(obs_dict, self._prev_obs_dict, act)
@@ -263,10 +265,12 @@ class PandaEnv(gym.Env):
         done = self.get_done(obs_dict, self._prev_obs_dict, act)
         info = self.get_info(obs_dict)
 
-        self._elapsed_steps += 1
         if self._elapsed_steps >= self._max_episode_steps:
             info['env_done'] = done
             done = True
+
+        info['obs_dict'] = obs_dict
+        info['prev_obs_dict'] = self._prev_obs_dict
 
         self._prev_obs = copy.deepcopy(obs)
         self._prev_obs_dict = copy.deepcopy(obs_dict)

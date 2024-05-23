@@ -22,15 +22,18 @@
   - [x] in progress, may23_tau5e-3
   - [x] okay at best..not a *definite* improvement
 - [ ] forward pass timing test on laptop
-- [ ] gpu memory test with environment with higher dimensional space
+- [ ] gpu memory test with environment with higher dimensional space + multitask
   - [ ] on home desktop
 - [x] make convenient script for testing trained policies
   - [x] should also produce a results file that matches the one generated during a regular training run
   - [x] also should allow stopping in the middle of collecting these results to restart (i.e. per-episode checkpoint)
   - [x] in progress at tests/evaluate_models, but may not be important so leaving alone for now
-- [ ] 5hz is a bit jerky for good policy..might need higher max movement, or lower stiffness
-  - [ ] not worth spending excessive time tuning in simulation..should just tune for real world
+- [x] 5hz is a bit jerky for good policy..might need higher max movement, or lower stiffness
+  - [x] not worth spending excessive time tuning in simulation..should just tune for real world
   - [x] confirmed that max vel in sim is 20 substeps + action mult of .002 is 2mm * 20 = 4cm/step, or 20cm/s
+  - [x] dropped to lower stiffness (matching real), might slow down learning though
+- [ ] drop pos limits way down (comparable to sim env)
+  - [ ] panda play has 30cm in x, 30cm in y, and 13.5cm in z...we've been testing with much, much larger
 
 ## TODO Fixes
 - [x] currently saving a buffer at every timestep AND checkpoint buffer AND termination buffer
