@@ -3,6 +3,7 @@ import time
 import os
 import pathlib
 import timeit
+from collections import OrderedDict
 
 import numpy as np
 import yaml
@@ -19,6 +20,8 @@ from transform_utils.pose_transforms import (
     pose2array,
     matrix2pose,
 )
+
+import panda_rl_envs.reward_utils as reward_utils
 
 def timer(): return timeit.default_timer()
 
@@ -56,7 +59,7 @@ class PandaEnv(gym.Env):
         self._prev_obs = None  # for reward/suc calc
         self._prev_obs_dict = None  # for reward/suc calc
         self._real_time_step = 1 / self.cfg['control_hz']
-        self._suc_latch = False
+        self._suc_timer = reward_utils.HoldTimer(self._real_time_step, self.cfg['suc_time_thresh'])
 
         # reset
         self.arm_client.get_and_update_state()
@@ -78,14 +81,21 @@ class PandaEnv(gym.Env):
         if self.cfg['grip_client']:
             self.grip_client = PandaGripperClient(server_ip='localhost', fake=self.cfg['server_ip'] == 'localhost')
 
+        # observations
+        self._obj_poses = OrderedDict()
+
         # observation and action spaces
         self._rot_in_pose = sum(self.cfg['valid_dof'][3:]) > 0
         pose_dim = 0
-        pose_dim += sum(self.cfg['valid_dof'][:3])
+        pos_dim = sum(self.cfg['valid_dof'][:3])
+        pose_dim += pos_dim
         if self._rot_in_pose: pose_dim += 4
+        obj_pose_dim = pos_dim
+        if self.cfg['obj_rot_in_pose']: obj_pose_dim += 4
 
         obs_dim = \
             pose_dim * int('pose' in self.cfg['state_data']) + \
+            obj_pose_dim * self.cfg['num_objs'] + \
             1 * int('grip_pos' in self.cfg['state_data'])
         self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), dtype=np.float32)
 
@@ -106,7 +116,13 @@ class PandaEnv(gym.Env):
 
     def reset(self):
         self._elapsed_steps = 0
-        self._suc_latch = False
+        self._suc_timer.reset()
+
+        # aux task handling
+        if hasattr(self, '_aux_suc_timers'):
+            for t in self._aux_suc_timers:
+                self._aux_suc_timers[t].reset()
+
         if self.cfg['grip_client']:
             self.grip_client.open()
             time.sleep(0.2)
@@ -157,17 +173,24 @@ class PandaEnv(gym.Env):
         state_list = []
         state_dict = {}
         self.arm_client.get_and_update_state()
+        pose = self.arm_client.EE_pose.get_array_quat()
+        valid_pos = pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
+        valid_rot = np.array([])
+        if self._rot_in_pose:
+            valid_rot = pose[3:]
 
         if 'pose' in self.cfg['state_data']:
-            pose = self.arm_client.EE_pose.get_array_quat()
-            valid_pos = pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
-            valid_rot = np.array([])
-            if self._rot_in_pose:
-                valid_rot = pose[3:]
             pose = np.concatenate([valid_pos, valid_rot])
 
             state_list.append(pose)
             state_dict['pose'] = pose
+
+        if 'pos_obj_diff' in self.cfg['state_data']:
+            for obj_pose_k, obj_pose in self._obj_poses.items():
+                valid_obj_pos = obj_pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
+                pos_obj_diff = valid_pos - valid_obj_pos
+                state_list.append(pos_obj_diff)
+                state_dict['pos_' + obj_pose_k + '_diff'] = pos_obj_diff
 
         if 'grip_pos' in self.cfg['state_data']:
             self.grip_client.get_and_update_state()

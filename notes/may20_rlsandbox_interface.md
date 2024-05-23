@@ -13,11 +13,24 @@
   - [ ] make a new sim task that has aux tasks as well
   - [ ] add aux rewards to rl_sandbox for aux tasks
     - [ ] maybe put them in the panda_rl_envs repo instead, and just import them from there
-- [ ] decide on making frame stack 2 default
-  - [ ] seems to be better
+- [x] decide on making frame stack 2 default
+  - [x] seems to be better
 - [ ] verify that single task reach and multitask whatever are actually learnable
-  - [ ] single task
+  - [x] single task
   - [ ] multitask
+- [x] test increasing tau, since faster learning is very desireable
+  - [x] in progress, may23_tau5e-3
+  - [x] okay at best..not a *definite* improvement
+- [ ] forward pass timing test on laptop
+- [ ] gpu memory test with environment with higher dimensional space
+  - [ ] on home desktop
+- [x] make convenient script for testing trained policies
+  - [x] should also produce a results file that matches the one generated during a regular training run
+  - [x] also should allow stopping in the middle of collecting these results to restart (i.e. per-episode checkpoint)
+  - [x] in progress at tests/evaluate_models, but may not be important so leaving alone for now
+- [ ] 5hz is a bit jerky for good policy..might need higher max movement, or lower stiffness
+  - [ ] not worth spending excessive time tuning in simulation..should just tune for real world
+  - [x] confirmed that max vel in sim is 20 substeps + action mult of .002 is 2mm * 20 = 4cm/step, or 20cm/s
 
 ## TODO Fixes
 - [x] currently saving a buffer at every timestep AND checkpoint buffer AND termination buffer

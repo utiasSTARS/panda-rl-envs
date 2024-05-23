@@ -9,6 +9,7 @@ pos_limits: [[0.6, 0.3, 0.5], [0.1, -0.45, 0.0]]  # should be lower than hardwar
 
 # task
 max_real_time: 10
+suc_time_thresh: 1
 
 # reset
 initial_reset_to_joints: true
@@ -23,6 +24,8 @@ valid_dof: [1, 1, 1, 1, 1, 1]
 # state
 only_positive_ee_quat: true
 state_data: ['pose', 'grip_pos']
+num_objs: 0
+obj_rot_in_pose: false
 
 # gripper
 grip_client: true  # can have grip client to force gripper open without having gripper in action

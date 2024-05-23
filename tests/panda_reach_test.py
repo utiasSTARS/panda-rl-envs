@@ -50,5 +50,5 @@ while not done:
 
     ret += rew
 
-    if (env._elapsed_steps + 1) % 10 == 0:
-        print(f"Ep at {env._elapsed_steps + 1}/{env._max_episode_steps}, ret: {ret}, suc: {info['suc']}")
+    if (env._elapsed_steps) % 10 == 0:
+        print(f"Ep at {env._elapsed_steps}/{env._max_episode_steps}, ret: {ret}, suc: {info['suc']}")

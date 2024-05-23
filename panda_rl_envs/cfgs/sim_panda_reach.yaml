@@ -8,13 +8,18 @@ pos_limits: [[0.6, 0.3, 0.5], [0.1, -0.45, 0.0]]
 # task
 reach_goal: [0.3, -0.4, 0.25]
 reach_suc_thresh: 0.02
-reach_suc_time_thresh: 0.5
+suc_time_thresh: 0.5
+
+# aux tasks
+aux_reach_goal: [0.4, 0.2, 0.3]
 
 # control
 valid_dof: [1, 1, 1, 0, 0, 0]
 
 # state
-state_data: ['pose']
+# state_data: ['pose']
+state_data: ['pos_obj_diff']
+num_objs: 2
 
 # gripper
 grip_client: true
