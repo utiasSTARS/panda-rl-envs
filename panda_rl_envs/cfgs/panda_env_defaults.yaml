@@ -5,12 +5,14 @@ ee_config_json: null
 # limits
 max_trans_vel: .2  # m/s
 max_rot_vel: .4    # rad/s
+pos_limits: [[0.6, 0.3, 0.5], [0.1, -0.45, 0.0]]  # should be lower than hardware limits
 
 # task
 max_real_time: 10
 
 # reset
-reset_joints: null  # plan is to not use this
+initial_reset_to_joints: true
+reset_joints: null
 reset_pose: null
 init_gripper_random_lim: [0, 0, 0, 0, 0, 0]
 

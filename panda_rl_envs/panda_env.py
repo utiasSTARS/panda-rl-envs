@@ -47,7 +47,7 @@ class PandaEnv(gym.Env):
             home_joints=self.cfg['reset_joints'],
             only_positive_ee_quat=self.cfg['only_positive_ee_quat'],
             ee_config_json=self.cfg['ee_config_json'],
-            sim=self.cfg['server_ip'] == 'localhost'
+            pos_limits=self.cfg['pos_limits']
         )
 
         # task
@@ -60,11 +60,13 @@ class PandaEnv(gym.Env):
 
         # reset
         self.arm_client.get_and_update_state()
-        self.cfg['reset_pose'] = self.cfg['reset_pose'] if self.cfg['reset_pose'] is not None else\
+        self.cfg['reset_pose'] = np.array(self.cfg['reset_pose']) if self.cfg['reset_pose'] is not None else\
             self.arm_client.EE_pose.get_array_euler(axes='sxyz')
         self._reset_base_tool_tf_arr = np.array(self.cfg['reset_pose'])
         self._reset_base_tool_pose = PoseTransformer(self._reset_base_tool_tf_arr, 'euler', axes='sxyz')
         self._reset_base_tool_pose.header.frame_id = "panda_link0"
+        self.cfg['reset_joints'] = np.array(self.cfg['reset_joints']) if self.cfg['reset_joints'] is not None else\
+            np.array(self.arm_client.joint_position)
 
         # control
         self.rate = Rate(self.cfg['control_hz'])
@@ -125,6 +127,12 @@ class PandaEnv(gym.Env):
             pose=reset_shift, rotation_representation="rvec").get_matrix()
         new_arm_pose = PoseTransformer(
                 pose=matrix2pose(self._reset_base_tool_pose.get_matrix() @ reset_pose_shift_mat))
+
+        if self.cfg['initial_reset_to_joints']:
+            if self.arm_client.sim:
+                self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.5)
+            else:
+                self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.1)
 
         self.arm_client.move_EE_to(new_arm_pose)  # blocks to move
         self.arm_client.reset(target_pose=new_arm_pose, init_pose=new_arm_pose)  # resets current desired poses
@@ -201,7 +209,7 @@ class PandaEnv(gym.Env):
         delta_rot = act[3:]
         delta_rot = delta_rot / self._max_rot_vel_norm * self.arm_client._delta_rot_limit
 
-        print(f"Obs to act delay: {timer() - self._obs_gen_time}")
+        # print(f"Obs to act delay: {timer() - self._obs_gen_time}")
 
         self.arm_client.shift_EE_by(translation=delta_trans, base_frame=True, rot_base_frame=True)
 
@@ -222,7 +230,7 @@ class PandaEnv(gym.Env):
             if sleep_time == 0:
                 print(f"WARNING: env did not sleep at ts {self._elapsed_steps}, is control delayed?")
 
-        print(f"DEBUG: ts: {self._elapsed_steps}, sleep time: {sleep_time}")
+        # print(f"DEBUG: ts: {self._elapsed_steps}, sleep time: {sleep_time}")
 
         self.arm_client.get_and_update_state()
         obs, obs_dict = self.prepare_obs()
