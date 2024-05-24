@@ -50,11 +50,11 @@ while not done:
     obs, rew, done, info = env.step(np.zeros(env.action_space.shape))
 
     # ret += rew
-    rews = env.get_aux_rew(info['obs_dict'], info['prev_obs_dict'], None)
+    rews = env.get_aux_rew(info)
     for ret_i in range(len(rets)):
         rets[ret_i] += rews[ret_i]
 
-    sucs = env.get_aux_suc(info['obs_dict'], info['prev_obs_dict'], None)
+    sucs = env.get_task_successes(info)
 
     # if (env._elapsed_steps) % 10 == 0:
     #     # print(f"Ep at {env._elapsed_steps}/{env._max_episode_steps}, ret: {ret}, suc: {info['suc']}")

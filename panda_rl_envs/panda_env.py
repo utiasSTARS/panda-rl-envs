@@ -261,7 +261,7 @@ class PandaEnv(gym.Env):
         obs, obs_dict = self.prepare_obs()
         rew = self.get_rew(obs_dict, self._prev_obs_dict, act)
         suc = self.get_suc(obs_dict, self._prev_obs_dict, act)
-        obs_dict['suc'] = suc
+        obs_dict['done_success'] = suc
         done = self.get_done(obs_dict, self._prev_obs_dict, act)
         info = self.get_info(obs_dict)
 

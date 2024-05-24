@@ -6,13 +6,14 @@
 - [x] start new branch from LfGP (public) and from VPACE for changes corresponding to this
 - [x] allow training of single task reach env
 - [x] add training between episodes instead of at steps
-- [ ] add restarting training from checkpoint
+- [x] add restarting training from checkpoint
   - [x] *probably* want to generate checkpoints after every episode, rather than at the save interval..save interval is just for models we keep long term
   - [x] test checkpoint on task that we know works to make sure training doesn't break
 - [ ] allow training of multitask reach env
   - [ ] make a new sim task that has aux tasks as well
   - [ ] add aux rewards to rl_sandbox for aux tasks
     - [ ] maybe put them in the panda_rl_envs repo instead, and just import them from there
+  - [ ] still missing scheduler period
 - [x] decide on making frame stack 2 default
   - [x] seems to be better
 - [ ] verify that single task reach and multitask whatever are actually learnable
@@ -32,8 +33,12 @@
   - [x] not worth spending excessive time tuning in simulation..should just tune for real world
   - [x] confirmed that max vel in sim is 20 substeps + action mult of .002 is 2mm * 20 = 4cm/step, or 20cm/s
   - [x] dropped to lower stiffness (matching real), might slow down learning though
-- [ ] drop pos limits way down (comparable to sim env)
-  - [ ] panda play has 30cm in x, 30cm in y, and 13.5cm in z...we've been testing with much, much larger
+- [x] drop pos limits way down (comparable to sim env)
+  - [x] panda play has 30cm in x, 30cm in y, and 13.5cm in z...we've been testing with much, much larger
+  - [x] wayyyy faster learning now
+- [x] try double grad updates
+  - [ ] appears to learn faster, could rpobably even do 3 updates
+- [ ] add option to have success eval added to training (in addition to returns)
 
 ## TODO Fixes
 - [x] currently saving a buffer at every timestep AND checkpoint buffer AND termination buffer

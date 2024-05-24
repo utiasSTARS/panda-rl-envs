@@ -8,6 +8,7 @@ import panda_rl_envs.reward_utils as reward_utils
 
 
 class PandaReach(PandaEnv):
+    VALID_AUX_TASKS=('main', 'reach')
     def __init__(self, config_dict={}, config_file=None):
         if config_file is None:
             config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'panda_reach.yaml')
@@ -15,7 +16,7 @@ class PandaReach(PandaEnv):
         self.cfg['reach_goal'] = np.array(self.cfg['reach_goal'])
         self.cfg['aux_reach_goal'] = np.array(self.cfg['aux_reach_goal'])
 
-    def get_rew(self, obs_dict, prev_obs_dict, act, goal_str='reach_goal'):
+    def get_rew(self, obs_dict, prev_obs_dict, action, goal_str='reach_goal'):
         if 'pose' in self.cfg['state_data']:
             return reward_utils.generic_reach_rew(obs_dict['pose'][:3], prev_obs_dict['pose'][:3], self.cfg[goal_str])
         elif 'pos_obj_diff' in self.cfg['state_data']:
@@ -23,7 +24,7 @@ class PandaReach(PandaEnv):
         else:
             raise NotImplementedError()
 
-    def get_suc(self, obs_dict, prev_obs_dict, act, goal_str='reach_goal', specific_timer=None):
+    def get_suc(self, obs_dict, prev_obs_dict, action, goal_str='reach_goal', specific_timer=None):
         if specific_timer is None:
             specific_timer = self._suc_timer
         if 'pose' in self.cfg['state_data']:
@@ -57,19 +58,23 @@ class PandaReach(PandaEnv):
 
         return super().prepare_obs()
 
-    def get_aux_rew(self, obs_dict, prev_obs_dict, act, tasks=('main', 'reach')):
+    def get_aux_rew(self, info, tasks=VALID_AUX_TASKS, **kwargs):
+        obs_dict = info['obs_dict']
+        prev_obs_dict = info['prev_obs_dict']
         rews = []
         for t in tasks:
             if t == 'main':
-                rews.append(self.get_rew(obs_dict, prev_obs_dict, act))
+                rews.append(self.get_rew(obs_dict, prev_obs_dict, None))
             elif t == 'reach':
-                rews.append(self.get_rew(obs_dict, prev_obs_dict, act, goal_str='aux_reach_goal'))
+                rews.append(self.get_rew(obs_dict, prev_obs_dict, None, goal_str='aux_reach_goal'))
             else:
                 raise NotImplementedError(f"get_aux_rew not defined for task {t}")
 
-        return rews
+        return rews if len(rews) > 1 else rews[0]
 
-    def get_aux_suc(self, obs_dict, prev_obs_dict, act, tasks=('main', 'reach')):
+    def get_task_successes(self, info, tasks=VALID_AUX_TASKS, **kwargs):
+        obs_dict = info['obs_dict']
+        prev_obs_dict = info['prev_obs_dict']
         sucs = []
 
         if not hasattr(self, '_aux_suc_timers'):
@@ -77,13 +82,13 @@ class PandaReach(PandaEnv):
 
         for t in tasks:
             if t == 'main':
-                sucs.append(self.get_suc(obs_dict, prev_obs_dict, act))
+                sucs.append(self.get_suc(obs_dict, prev_obs_dict, None))
             else:
                 suc_bool = False
                 if t not in self._aux_suc_timers:
                     self._aux_suc_timers[t] = reward_utils.HoldTimer(self._real_time_step, self.cfg['suc_time_thresh'])
                 if t == 'reach':
-                    suc_bool = self.get_suc(obs_dict, prev_obs_dict, act,
+                    suc_bool = self.get_suc(obs_dict, prev_obs_dict, None,
                                             goal_str='aux_reach_goal', specific_timer=self._aux_suc_timers[t])
                 else:
                     raise NotImplementedError(f"get_aux_suc not defined for task {t}")
@@ -92,7 +97,7 @@ class PandaReach(PandaEnv):
 
         return sucs
 
-    def get_aux_suc_examples(self, num_ex, tasks=('main', 'reach')):
+    def get_aux_suc_examples(self, num_ex, tasks=VALID_AUX_TASKS):
         suc_ex_dict = dict()
         for t in tasks:
             if t == 'main':
