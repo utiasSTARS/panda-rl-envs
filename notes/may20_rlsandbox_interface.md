@@ -9,22 +9,24 @@
 - [x] add restarting training from checkpoint
   - [x] *probably* want to generate checkpoints after every episode, rather than at the save interval..save interval is just for models we keep long term
   - [x] test checkpoint on task that we know works to make sure training doesn't break
-- [ ] allow training of multitask reach env
-  - [ ] make a new sim task that has aux tasks as well
-  - [ ] add aux rewards to rl_sandbox for aux tasks
-    - [ ] maybe put them in the panda_rl_envs repo instead, and just import them from there
-  - [ ] still missing scheduler period
+- [x] allow training of multitask reach env
+  - [x] make a new sim task that has aux tasks as well
+  - [x] add aux rewards to rl_sandbox for aux tasks
+    - [x] maybe put them in the panda_rl_envs repo instead, and just import them from there
+  - [x] still missing scheduler period
 - [x] decide on making frame stack 2 default
   - [x] seems to be better
-- [ ] verify that single task reach and multitask whatever are actually learnable
+- [x] verify that single task reach and multitask whatever are actually learnable
   - [x] single task
-  - [ ] multitask
+  - [x] multitask -- need to verify performance of saved model
 - [x] test increasing tau, since faster learning is very desireable
   - [x] in progress, may23_tau5e-3
   - [x] okay at best..not a *definite* improvement
-- [ ] forward pass timing test on laptop
-- [ ] gpu memory test with environment with higher dimensional space + multitask
-  - [ ] on home desktop
+- [x] forward pass timing test on laptop
+  - [x] not needed, using rosetta instead
+- [x] gpu memory test with environment with higher dimensional space + multitask
+  - [x] on home desktop
+  - [x] not needed, using rosetta instead
 - [x] make convenient script for testing trained policies
   - [x] should also produce a results file that matches the one generated during a regular training run
   - [x] also should allow stopping in the middle of collecting these results to restart (i.e. per-episode checkpoint)
@@ -39,6 +41,7 @@
 - [x] try double grad updates
   - [ ] appears to learn faster, could rpobably even do 3 updates
 - [ ] add option to have success eval added to training (in addition to returns)
+- [ ] install & test everything on rosetta
 
 ## TODO Fixes
 - [x] currently saving a buffer at every timestep AND checkpoint buffer AND termination buffer

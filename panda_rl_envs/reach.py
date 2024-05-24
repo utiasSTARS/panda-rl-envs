@@ -47,7 +47,10 @@ class PandaReach(PandaEnv):
             suc_reach_diff = np.random.uniform(low=-max_dist, high=max_dist, size=(num_ex, sum(self.cfg['valid_dof'][:3])))
             other_reach_diff = self.cfg[goal_str] - self.cfg[other_goal_str] + \
                 np.random.uniform(low=-max_dist, high=max_dist, size=(num_ex, sum(self.cfg['valid_dof'][:3])))
-            return np.hstack([suc_reach_diff, other_reach_diff])
+            if goal_str == 'reach_goal':
+                return np.hstack([suc_reach_diff, other_reach_diff])
+            else:
+                return np.hstack([other_reach_diff, suc_reach_diff])
         else:
             raise NotImplementedError()
 

@@ -2,7 +2,7 @@
 
 NUM_EPISODES="50"
 INTENTION="0"
-MODEL_NAME="32000.pt"
+MODEL_NAME="10000.pt"
 # CONFIG_NAME="lfgp_experiment_setting.pkl"
 CONFIG_NAME="dac_experiment_setting.pkl"
 SEED="12"
@@ -10,7 +10,10 @@ SEED="12"
 TOP="/media/ssd_2tb/data/lfebp/panda_rl_envs/results"
 
 # may 23 testing in sim
-MODEL_REST="SimPandaReach/100/sqil/pos_limits_fs2_fixenv/05-22-24_20_23_20"
+MODEL_REST="SimPandaReach/100/sqil/may23_smaller_limits/05-23-24_15_58_32"
+
+# may 24 testing multitask
+# MODEL_REST="SimPandaReach/100/multi-sqil/may24_multi_fixeddata/05-24-24_14_07_53"
 
 # FORCED_SCHEDULE="{0: 3, 25: 2, 50: 4, 75: 5, 100: 1, 125: 3, 150: 4, 175: 2, 200: 1}"
 
