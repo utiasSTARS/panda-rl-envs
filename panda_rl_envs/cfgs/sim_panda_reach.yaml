@@ -24,5 +24,4 @@ state_data: ['pos_obj_diff']
 num_objs: 2
 
 # gripper
-grip_client: true
 grip_in_action: false

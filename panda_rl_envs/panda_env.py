@@ -15,6 +15,7 @@ from panda_polymetis.utils.poses import geodesic_error
 from panda_polymetis.utils.rate import Rate
 from panda_polymetis.control.panda_client import PandaClient
 from panda_polymetis.control.panda_gripper_client import PandaGripperClient
+from panda_polymetis.perception.realsense_client import RealsenseAPI
 from transform_utils.pose_transforms import (
     PoseTransformer,
     pose2array,
@@ -135,14 +136,22 @@ class PandaEnv(gym.Env):
                 raise ValueError("Gripper is not open.")
 
         self.arm_client.get_and_update_state()
-        reset_shift = np.random.uniform(
-            low=-np.array(self.cfg['init_gripper_random_lim']) / 2,
-            high=np.array(self.cfg['init_gripper_random_lim']) / 2,
-            size=6)
-        reset_pose_shift_mat = PoseTransformer(
-            pose=reset_shift, rotation_representation="rvec").get_matrix()
-        new_arm_pose = PoseTransformer(
-                pose=matrix2pose(self._reset_base_tool_pose.get_matrix() @ reset_pose_shift_mat))
+        if self.cfg['init_ee_high_lim'] is not None and self.cfg['init_ee_low_lim'] is not None:
+            new_arm_pos_rvec = np.random.uniform(
+                low=np.array(self.cfg['init_ee_low_lim']),
+                high=np.array(self.cfg['init_ee_high_lim']),
+                size=6
+            )
+            new_arm_pose = PoseTransformer(pose=new_arm_pos_rvec, rotation_representation="euler", axes='sxyz')
+        else:
+            reset_shift = np.random.uniform(
+                low=-np.array(self.cfg['init_ee_random_lim']) / 2,
+                high=np.array(self.cfg['init_ee_random_lim']) / 2,
+                size=6)
+            reset_pose_shift_mat = PoseTransformer(
+                pose=reset_shift, rotation_representation="rvec").get_matrix()
+            new_arm_pose = PoseTransformer(
+                    pose=matrix2pose(self._reset_base_tool_pose.get_matrix() @ reset_pose_shift_mat))
 
         if self.cfg['initial_reset_to_joints']:
             if self.arm_client.sim:
@@ -184,6 +193,22 @@ class PandaEnv(gym.Env):
 
             state_list.append(pose)
             state_dict['pose'] = pose
+
+        if 'obj_pose' in self.cfg['state_data'] or 'pos_obj_diff' in self.cfg['state_data']:
+            for obj_pose_k, obj_pose in self._obj_poses.items():
+                valid_obj_pos = obj_pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
+                if self.cfg['obj_rot_in_pose']:
+                    valid_obj_rot = obj_pose[3:]
+
+        if 'obj_pose' in self.cfg['state_data']:
+            for obj_pose_k, obj_pose in self._obj_poses.items():
+                valid_obj_pos = obj_pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
+                valid_rot = np.array([])
+                if self.cfg['obj_rot_in_pose']:
+                    valid_rot = obj_pose[4:]
+                obj_pose = np.concatenate([valid_obj_pos, valid_obj_rot])
+                state_list.append(obj_pose)
+                state_dict[obj_pose_k + '_pose'] = obj_pose
 
         if 'pos_obj_diff' in self.cfg['state_data']:
             for obj_pose_k, obj_pose in self._obj_poses.items():
@@ -267,6 +292,9 @@ class PandaEnv(gym.Env):
 
         if self._elapsed_steps >= self._max_episode_steps:
             info['env_done'] = done
+            done = True
+
+        if self.cfg['done_on_success'] and suc:
             done = True
 
         info['obs_dict'] = obs_dict

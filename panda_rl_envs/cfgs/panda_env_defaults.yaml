@@ -10,12 +10,15 @@ pos_limits: [[0.6, 0.3, 0.5], [0.1, -0.45, 0.0]]  # should be lower than hardwar
 # task
 max_real_time: 10
 suc_time_thresh: 1
+done_on_success: false
 
 # reset
 initial_reset_to_joints: true
 reset_joints: null
 reset_pose: null
-init_gripper_random_lim: [0, 0, 0, 0, 0, 0]
+init_ee_random_lim: [0, 0, 0, 0, 0, 0]
+init_ee_high_lim: null
+init_ee_low_lim: null
 
 # control
 control_hz: 5
@@ -26,6 +29,7 @@ only_positive_ee_quat: true
 state_data: ['pose', 'grip_pos']
 num_objs: 0
 obj_rot_in_pose: false
+obj_pose_type: 'env_defined'  # env_defined, aruco_single, aruco_multi, aruco_cube, charuco
 
 # gripper
 grip_client: true  # can have grip client to force gripper open without having gripper in action

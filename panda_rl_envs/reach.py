@@ -118,6 +118,21 @@ class SimPandaReach(PandaReach):
         super().__init__(config_dict=config_dict, config_file=config_file)
 
 
+class SimPandaReachRandInit(PandaReach):
+    def __init__(self, config_dict={}, config_file=None):
+        if config_file is None:
+            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'sim_panda_reach.yaml')
+        config_dict['server_ip'] = 'localhost'
+
+        # reset_pose: [0.5284425, -0.09963877, 0.436256, -3.075285, -0.006185998, 0.6868039]
+        # pos_limits: [[0.6, 0.15, 0.5], [0.3, -0.15, 0.3]]
+        config_dict['init_ee_high_lim'] = [0.55, -0.05, 0.45, -3.075285, -0.006185998, 0.6868039]
+        config_dict['init_ee_low_lim'] = [0.45, -0.15, 0.35, -3.075285, -0.006185998, 0.6868039]
+        # config_dict['init_ee_random_lim'] = [.05, .05, .05, 0.0, 0.0, 0.0]
+
+        super().__init__(config_dict=config_dict, config_file=config_file)
+
+
 class SimPandaReachAbs(PandaReach):
     def __init__(self, config_dict={}, config_file=None):
         if config_file is None:
