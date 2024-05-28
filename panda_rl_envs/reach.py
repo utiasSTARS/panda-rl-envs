@@ -39,7 +39,7 @@ class PandaReach(PandaEnv):
         # assuming suc thresh of 1, max dist of suc ex will be sqrt(3) / 3 = 0.577 < 1
         max_dist = self.cfg['reach_suc_thresh'] / 3
         if self.cfg['state_data'] == ['pose']:
-            return self.cfg[reach_goal] + \
+            return self.cfg[goal_str] + \
                 np.random.uniform(low=-max_dist, high=max_dist, size=(num_ex, self.observation_space.shape[0]))
         elif self.cfg['state_data'] == ['pos_obj_diff'] and self.cfg['num_objs'] == 2:
             # now includes both regular and aux diff
@@ -75,9 +75,9 @@ class PandaReach(PandaEnv):
 
         return rews if len(rews) > 1 else rews[0]
 
-    def get_task_successes(self, info, tasks=VALID_AUX_TASKS, **kwargs):
-        obs_dict = info['obs_dict']
-        prev_obs_dict = info['prev_obs_dict']
+    def get_task_successes(self, env_info, tasks=VALID_AUX_TASKS, **kwargs):
+        obs_dict = env_info['obs_dict']
+        prev_obs_dict = env_info['prev_obs_dict']
         sucs = []
 
         if not hasattr(self, '_aux_suc_timers'):
@@ -115,4 +115,14 @@ class SimPandaReach(PandaReach):
         if config_file is None:
             config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'sim_panda_reach.yaml')
         config_dict['server_ip'] = 'localhost'
+        super().__init__(config_dict=config_dict, config_file=config_file)
+
+
+class SimPandaReachAbs(PandaReach):
+    def __init__(self, config_dict={}, config_file=None):
+        if config_file is None:
+            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'sim_panda_reach.yaml')
+        config_dict['server_ip'] = 'localhost'
+        config_dict['state_data'] = ['pose']
+        config_dict['num_objs'] = 0
         super().__init__(config_dict=config_dict, config_file=config_file)
