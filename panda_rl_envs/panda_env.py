@@ -16,6 +16,7 @@ from panda_polymetis.utils.rate import Rate
 from panda_polymetis.control.panda_client import PandaClient
 from panda_polymetis.control.panda_gripper_client import PandaGripperClient
 from panda_polymetis.perception.realsense_client import RealsenseAPI
+from panda_polymetis.perception.aruco_client import ArucoClient
 from transform_utils.pose_transforms import (
     PoseTransformer,
     pose2array,
@@ -43,6 +44,11 @@ class PandaEnv(gym.Env):
 
         # override all with config_dict
         self.cfg.update(config_dict)
+
+        # make np arrays for lists of numbers
+        for k in self.cfg.keys():
+            if type(self.cfg[k]) == list and len(self.cfg[k]) > 0 and type(self.cfg[k][0]) in [int, float]:
+                self.cfg[k] = np.array(self.cfg[k])
 
         self.arm_client = PandaClient(
             server_ip=self.cfg['server_ip'],
@@ -84,6 +90,19 @@ class PandaEnv(gym.Env):
 
         # observations
         self._obj_poses = OrderedDict()
+        if 'aruco' in self.cfg['obj_pose_type']:
+            if self.cfg['obj_pose_type'] != 'aruco_single':
+                raise NotImplementedError()
+            hw = self.cfg['aruco_height_width']
+            self.aruco_client = ArucoClient(
+                height=hw[0], width=hw[1], valid_marker_ids=self.cfg['aruco_valid_marker_ids'],
+                marker_width=self.cfg['aruco_marker_width'], dictionary=self.cfg['aruco_dictionary'],
+                max_marker_stale_time=self.cfg['aruco_max_marker_stale_time'],
+                base_to_cam_tf=self.cfg['aruco_base_to_cam_tf'].tolist(),
+                marker_to_obj_tf=self.cfg['aruco_marker_to_obj_tf'].tolist()
+            )
+            for k in self.cfg['obj_names']:
+                self._obj_poses[k] = np.zeros(7)
 
         # observation and action spaces
         self._rot_in_pose = sum(self.cfg['valid_dof'][3:]) > 0
@@ -195,17 +214,23 @@ class PandaEnv(gym.Env):
             state_dict['pose'] = pose
 
         if 'obj_pose' in self.cfg['state_data'] or 'pos_obj_diff' in self.cfg['state_data']:
-            for obj_pose_k, obj_pose in self._obj_poses.items():
-                valid_obj_pos = obj_pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
-                if self.cfg['obj_rot_in_pose']:
-                    valid_obj_rot = obj_pose[3:]
+            if 'aruco' in self.cfg['obj_pose_type']:
+                poses = self.aruco_client.get_latest_poses()
+                for k_i, k in enumerate(self._obj_poses.keys()):
+                    self._obj_poses[k] = PoseTransformer(
+                        pose=poses[k_i], rotation_representation='rvec').get_array_quat()
+
+            # for obj_pose_k, obj_pose in self._obj_poses.items():
+            #     valid_obj_pos = obj_pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
+            #     if self.cfg['obj_rot_in_pose']:
+            #         valid_obj_rot = obj_pose[3:]
 
         if 'obj_pose' in self.cfg['state_data']:
             for obj_pose_k, obj_pose in self._obj_poses.items():
                 valid_obj_pos = obj_pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
-                valid_rot = np.array([])
+                valid_obj_rot = np.array([])
                 if self.cfg['obj_rot_in_pose']:
-                    valid_rot = obj_pose[4:]
+                    valid_obj_rot = obj_pose[4:]
                 obj_pose = np.concatenate([valid_obj_pos, valid_obj_rot])
                 state_list.append(obj_pose)
                 state_dict[obj_pose_k + '_pose'] = obj_pose
@@ -284,10 +309,16 @@ class PandaEnv(gym.Env):
 
         self.arm_client.get_and_update_state()
         obs, obs_dict = self.prepare_obs()
-        rew = self.get_rew(obs_dict, self._prev_obs_dict, act)
-        suc = self.get_suc(obs_dict, self._prev_obs_dict, act)
-        obs_dict['done_success'] = suc
-        done = self.get_done(obs_dict, self._prev_obs_dict, act)
+        if self._prev_obs_dict is None:
+            rew = self.get_rew(obs_dict, obs_dict, act)
+            suc = self.get_suc(obs_dict, obs_dict, act)
+            obs_dict['done_success'] = suc
+            done = self.get_done(obs_dict, obs_dict, act)
+        else:
+            rew = self.get_rew(obs_dict, self._prev_obs_dict, act)
+            suc = self.get_suc(obs_dict, self._prev_obs_dict, act)
+            obs_dict['done_success'] = suc
+            done = self.get_done(obs_dict, self._prev_obs_dict, act)
         info = self.get_info(obs_dict)
 
         if self._elapsed_steps >= self._max_episode_steps:
@@ -298,7 +329,10 @@ class PandaEnv(gym.Env):
             done = True
 
         info['obs_dict'] = obs_dict
-        info['prev_obs_dict'] = self._prev_obs_dict
+        if self._prev_obs_dict is None:
+            info['prev_obs_dict'] = obs_dict
+        else:
+            info['prev_obs_dict'] = self._prev_obs_dict
 
         self._prev_obs = copy.deepcopy(obs)
         self._prev_obs_dict = copy.deepcopy(obs_dict)

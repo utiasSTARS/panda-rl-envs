@@ -1,4 +1,4 @@
-expert_data/data
+panda_rl_envs/expert_data/data
 .envrc
 *.code-workspace
 

@@ -31,6 +31,15 @@ num_objs: 0
 obj_rot_in_pose: false
 obj_pose_type: 'env_defined'  # env_defined, aruco_single, aruco_multi, aruco_cube, charuco
 
+# aruco
+aruco_height_width: [480, 640]
+aruco_valid_marker_ids: []
+aruco_marker_width: 0.055  # m
+aruco_dictionary: 'DICT_4X4_50'
+aruco_max_marker_stale_time: 0.5  # s
+aruco_base_to_cam_tf: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+aruco_marker_to_obj_tf: [0., 0., 0., 0., 0., 0.]
+
 # gripper
 grip_client: true  # can have grip client to force gripper open without having gripper in action
 grip_in_action: true

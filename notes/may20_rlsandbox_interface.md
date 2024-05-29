@@ -41,7 +41,7 @@
 - [x] try double grad updates
   - [ ] appears to learn faster, could rpobably even do 3 updates
 - [ ] add option to have success eval added to training (in addition to returns)
-- [ ] install & test everything on rosetta
+- [x] install & test everything on rosetta
 
 ## TODO Fixes
 - [x] currently saving a buffer at every timestep AND checkpoint buffer AND termination buffer

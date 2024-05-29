@@ -1,0 +1,47 @@
+# reset
+reset_pose: [0.5284425, -0.09963877, 0.436256, -3.075285, -0.006185998, 0.6868039]
+reset_joints: [-0.1396856, -0.02057456, -0.05217665, -2.06931, 0.05060055, 2.001138, -0.9010438]
+
+# limits
+pos_limits: [[0.6, 0.15, 0.436256], [0.3, -0.15, 0.436256]]
+
+# task
+main_suc_thresh: 0.05
+reach_suc_thresh: 0.02
+suc_time_thresh: 0.5
+open_pos: [0.3, -0.1]
+
+# aux tasks
+# TODO grab from moving the arm to the correct reach position
+# other option is to just use distance between handle and ee directly
+handle_ee_pos: [0.3, -0.1]
+grasp_grip_pos: .004
+grasp_reach_suc_thresh: .005
+main_suc_pos: [0.4, -0.1]
+reach_suc_pos: [0.55, 0.1]
+grasp_suc_pos: [0.45, 0.0]
+main_suc_rand: [0.02, 0.02]
+reach_suc_rand: [0.01, 0.005]
+grasp_suc_rand: [0.005, 0.01]
+
+# control
+valid_dof: [1, 1, 0, 0, 0, 0]
+
+# state
+state_data: ['pose', 'obj_pose', 'pos_obj_diff', 'grip_pos']
+obj_pose_type: 'aruco_single'
+num_objs: 1
+obj_names: ['handle']
+
+# aruco tags/calibration
+aruco_valid_marker_ids: [0]
+aruco_base_to_cam_tf: [0., 0., 0., 0., 0., 0.]
+aruco_marker_to_obj_tf: [0., 0., 0., 0., 0., 0.]  # with multiple objects, this should be a list
+
+# master success observations
+main_suc_obs: [0., 0., 0., 0., 0., 0., 0.]
+reach_suc_obs: [0., 0., 0., 0., 0., 0., 0.]
+grip_suc_obs: [0., 0., 0., 0., 0., 0., 0.]
+
+# gripper
+grip_in_action: true
