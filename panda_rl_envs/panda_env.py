@@ -9,6 +9,7 @@ import numpy as np
 import yaml
 import gym
 from gym import spaces
+import cv2
 
 import panda_polymetis
 from panda_polymetis.utils.poses import geodesic_error
@@ -90,7 +91,7 @@ class PandaEnv(gym.Env):
 
         # observations
         self._obj_poses = OrderedDict()
-        if 'aruco' in self.cfg['obj_pose_type']:
+        if 'aruco' in self.cfg['obj_pose_type'] and not self.cfg['dummy_env']:
             if self.cfg['obj_pose_type'] != 'aruco_single':
                 raise NotImplementedError()
             hw = self.cfg['aruco_height_width']
@@ -103,6 +104,7 @@ class PandaEnv(gym.Env):
             )
             for k in self.cfg['obj_names']:
                 self._obj_poses[k] = np.zeros(7)
+            self._aruco_img = np.zeros([hw[0], hw[1], 3], dtype=np.uint8)
 
         # observation and action spaces
         self._rot_in_pose = sum(self.cfg['valid_dof'][3:]) > 0
@@ -116,6 +118,7 @@ class PandaEnv(gym.Env):
         obs_dim = \
             pose_dim * int('pose' in self.cfg['state_data']) + \
             obj_pose_dim * self.cfg['num_objs'] + \
+            pos_dim * self.cfg['num_objs'] * int('pos_obj_diff' in self.cfg['state_data']) + \
             1 * int('grip_pos' in self.cfg['state_data'])
         self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), dtype=np.float32)
 
@@ -216,6 +219,7 @@ class PandaEnv(gym.Env):
         if 'obj_pose' in self.cfg['state_data'] or 'pos_obj_diff' in self.cfg['state_data']:
             if 'aruco' in self.cfg['obj_pose_type']:
                 poses = self.aruco_client.get_latest_poses()
+                self._aruco_img = self.aruco_client.get_latest_image()
                 for k_i, k in enumerate(self._obj_poses.keys()):
                     self._obj_poses[k] = PoseTransformer(
                         pose=poses[k_i], rotation_representation='rvec').get_array_quat()
@@ -268,6 +272,11 @@ class PandaEnv(gym.Env):
 
     def get_info(self, obs_dict):
         return {**obs_dict}
+
+    def render(self):
+        if hasattr(self, 'aruco_client'):
+            cv2.imshow("Cam image w/ aruco", self._aruco_img)
+            cv2.waitKey(1)
 
     def step(self, act, train_func=None):
         act = np.array(act)
@@ -345,6 +354,9 @@ class PandaEnv(gym.Env):
         self._training_updated = False
         return self._update_bool, self._training_update_info
 
+    # def __del__(self):
+    #     if hasattr(self, 'aruco_client'):
+    #         self.aruco_client.close_shm()
 
 class SimPandaEnv(PandaEnv):
     def __init__(self, config_dict={}, config_file=None) -> None:

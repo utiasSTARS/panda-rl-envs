@@ -4,6 +4,8 @@ reset_joints: [-0.1396856, -0.02057456, -0.05217665, -2.06931, 0.05060055, 2.001
 
 # limits
 pos_limits: [[0.6, 0.15, 0.436256], [0.3, -0.15, 0.436256]]
+init_ee_high_lim: [0.55, -0.05, 0.45, -3.075285, -0.006185998, 0.6868039]
+init_ee_low_lim: [0.45, -0.15, 0.35, -3.075285, -0.006185998, 0.6868039]
 
 # task
 main_suc_thresh: 0.05
@@ -37,11 +39,6 @@ obj_names: ['handle']
 aruco_valid_marker_ids: [0]
 aruco_base_to_cam_tf: [0., 0., 0., 0., 0., 0.]
 aruco_marker_to_obj_tf: [0., 0., 0., 0., 0., 0.]
-
-# master success observations
-main_suc_obs: [0., 0., 0., 0., 0., 0., 0.]
-reach_suc_obs: [0., 0., 0., 0., 0., 0., 0.]
-grip_suc_obs: [0., 0., 0., 0., 0., 0., 0.]
 
 # gripper
 grip_in_action: true

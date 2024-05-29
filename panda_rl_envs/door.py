@@ -102,42 +102,26 @@ class PandaDoor(PandaEnv):
     #     return super().prepare_obs()
 
     def get_aux_rew(self, info, tasks=VALID_AUX_TASKS, **kwargs):
-        raise NotImplementedError("Continue implementation here!")
         obs_dict = info['obs_dict']
         prev_obs_dict = info['prev_obs_dict']
         rews = []
         for t in tasks:
-            if t == 'main':
-                rews.append(self.get_rew(obs_dict, prev_obs_dict, None))
-            elif t == 'reach':
-                rews.append(self.get_rew(obs_dict, prev_obs_dict, None, goal_str='aux_reach_goal'))
-            else:
-                raise NotImplementedError(f"get_aux_rew not defined for task {t}")
+            rews.append(self.get_rew(obs_dict, prev_obs_dict, None, task=t))
 
         return rews if len(rews) > 1 else rews[0]
 
-    def get_task_successes(self, info, tasks=VALID_AUX_TASKS, **kwargs):
-        obs_dict = info['obs_dict']
-        prev_obs_dict = info['prev_obs_dict']
+    def get_task_successes(self, env_info, tasks=VALID_AUX_TASKS, **kwargs):
+        obs_dict = env_info['obs_dict']
+        prev_obs_dict = env_info['prev_obs_dict']
         sucs = []
 
         if not hasattr(self, '_aux_suc_timers'):
             self._aux_suc_timers = dict()
 
         for t in tasks:
-            if t == 'main':
-                sucs.append(self.get_suc(obs_dict, prev_obs_dict, None))
-            else:
-                suc_bool = False
-                if t not in self._aux_suc_timers:
-                    self._aux_suc_timers[t] = reward_utils.HoldTimer(self._real_time_step, self.cfg['suc_time_thresh'])
-                if t == 'reach':
-                    suc_bool = self.get_suc(obs_dict, prev_obs_dict, None,
-                                            goal_str='aux_reach_goal', specific_timer=self._aux_suc_timers[t])
-                else:
-                    raise NotImplementedError(f"get_aux_suc not defined for task {t}")
-
-                sucs.append(suc_bool)
+            if t not in self._aux_suc_timers:
+                self._aux_suc_timers[t] = reward_utils.HoldTimer(self._real_time_step, self.cfg['suc_time_thresh'])
+            sucs.append(self.get_suc(obs_dict, prev_obs_dict, None, task=t, specific_timer=self._aux_suc_timers[t]))
 
         return sucs
 
