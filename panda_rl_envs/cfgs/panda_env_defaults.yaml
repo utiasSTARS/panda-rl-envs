@@ -6,6 +6,7 @@ ee_config_json: null
 max_trans_vel: .2  # m/s
 max_rot_vel: .4    # rad/s
 pos_limits: [[0.6, 0.3, 0.5], [0.1, -0.45, 0.0]]  # should be lower than hardware limits
+poseulsxyz_offset: [0, 0, 0, 0, 0, 0.6267]  # rotate limits to match geometry of shelves
 
 # task
 max_real_time: 10
@@ -28,7 +29,7 @@ valid_dof: [1, 1, 1, 1, 1, 1]
 only_positive_ee_quat: true
 state_data: ['pose', 'grip_pos']
 num_objs: 0
-obj_rot_in_pose: false
+obj_valid_dof: [1, 1, 1, 1, 1, 1]
 obj_pose_type: 'env_defined'  # env_defined, aruco_single, aruco_multi, aruco_cube, charuco
 
 # aruco

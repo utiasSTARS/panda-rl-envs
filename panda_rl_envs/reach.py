@@ -11,7 +11,7 @@ class PandaReach(PandaEnv):
     VALID_AUX_TASKS=('main', 'reach')
     def __init__(self, config_dict={}, config_file=None):
         if config_file is None:
-            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'panda_reach.yaml')
+            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'reach.yaml')
         super().__init__(config_dict, config_file)
         self.cfg['reach_goal'] = np.array(self.cfg['reach_goal'])
         self.cfg['aux_reach_goal'] = np.array(self.cfg['aux_reach_goal'])
@@ -136,7 +136,7 @@ class SimPandaReachRandInit(PandaReach):
 class SimPandaReachAbs(PandaReach):
     def __init__(self, config_dict={}, config_file=None):
         if config_file is None:
-            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'sim_panda_reach.yaml')
+            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'sim_reach.yaml')
         config_dict['server_ip'] = 'localhost'
         config_dict['state_data'] = ['pose']
         config_dict['num_objs'] = 0

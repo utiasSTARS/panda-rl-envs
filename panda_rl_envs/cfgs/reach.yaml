@@ -1,0 +1,29 @@
+# reset
+reset_pose: [0.274644, 0.2942181, 0.5386329, -1.576188, -0.8168826, 0.3751863]
+reset_joints: [1.341989, -1.217723, -1.023784, -2.497711, 0.6293392, 2.00298, -1.582492]
+
+# limits
+max_trans_vel: .1
+pos_limits: [[0.6117, 0.4, 0.6], [0.2, 0.141, 0.4]]
+
+# task
+# reach_goal: [0.3, -0.4, 0.25]
+reach_goal: [0.55, 0.4, 0.42]
+reach_suc_thresh: 0.02
+suc_time_thresh: 0.5
+
+# aux tasks
+# aux_reach_goal: [0.4, 0.2, 0.3]
+aux_reach_goal: [0.25, 0.2, 0.55]
+
+# control
+valid_dof: [1, 1, 1, 0, 0, 0]
+
+# state
+# state_data: ['pose']
+obj_valid_dof: [1, 1, 1, 0, 0, 0]
+state_data: ['pos_obj_diff']
+num_objs: 2
+
+# gripper
+grip_in_action: false

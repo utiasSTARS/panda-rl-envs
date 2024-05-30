@@ -58,7 +58,8 @@ class PandaEnv(gym.Env):
             home_joints=self.cfg['reset_joints'],
             only_positive_ee_quat=self.cfg['only_positive_ee_quat'],
             ee_config_json=self.cfg['ee_config_json'],
-            pos_limits=self.cfg['pos_limits']
+            pos_limits=self.cfg['pos_limits'],
+            base_poseulsxyz_offset=self.cfg['poseulsxyz_offset']
         )
 
         # task
@@ -112,12 +113,18 @@ class PandaEnv(gym.Env):
         pos_dim = sum(self.cfg['valid_dof'][:3])
         pose_dim += pos_dim
         if self._rot_in_pose: pose_dim += 4
-        obj_pose_dim = pos_dim
-        if self.cfg['obj_rot_in_pose']: obj_pose_dim += 4
+        self._obj_rot_in_pose = sum(self.cfg['obj_valid_dof'][3:]) > 0
+        obj_pose_dim = 0
+        obj_pos_dim = sum(self.cfg['obj_valid_dof'][:3])
+        obj_pose_dim += obj_pos_dim
+        if self._obj_rot_in_pose: obj_pose_dim += 4
+
+        if 'pos_obj_diff' in self.cfg['state_data']:
+            assert pos_dim == obj_pos_dim
 
         obs_dim = \
             pose_dim * int('pose' in self.cfg['state_data']) + \
-            obj_pose_dim * self.cfg['num_objs'] + \
+            obj_pose_dim * self.cfg['num_objs'] * int('obj_pose' in self.cfg['state_data']) + \
             pos_dim * self.cfg['num_objs'] * int('pos_obj_diff' in self.cfg['state_data']) + \
             1 * int('grip_pos' in self.cfg['state_data'])
         self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), dtype=np.float32)
@@ -231,9 +238,9 @@ class PandaEnv(gym.Env):
 
         if 'obj_pose' in self.cfg['state_data']:
             for obj_pose_k, obj_pose in self._obj_poses.items():
-                valid_obj_pos = obj_pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
+                valid_obj_pos = obj_pose[:3][self.cfg['obj_valid_dof'][:3].nonzero()[0]]
                 valid_obj_rot = np.array([])
-                if self.cfg['obj_rot_in_pose']:
+                if self._obj_rot_in_pose:
                     valid_obj_rot = obj_pose[4:]
                 obj_pose = np.concatenate([valid_obj_pos, valid_obj_rot])
                 state_list.append(obj_pose)
@@ -278,6 +285,33 @@ class PandaEnv(gym.Env):
             cv2.imshow("Cam image w/ aruco", self._aruco_img)
             cv2.waitKey(1)
 
+    def _get_obs_rew_done_info(self, act):
+        self.arm_client.get_and_update_state()
+        obs, obs_dict = self.prepare_obs()
+        if self._prev_obs_dict is None:
+            rew = self.get_rew(obs_dict, obs_dict, act)
+            suc = self.get_suc(obs_dict, obs_dict, act)
+            obs_dict['done_success'] = suc
+            done = self.get_done(obs_dict, obs_dict, act)
+        else:
+            rew = self.get_rew(obs_dict, self._prev_obs_dict, act)
+            suc = self.get_suc(obs_dict, self._prev_obs_dict, act)
+            obs_dict['done_success'] = suc
+            done = self.get_done(obs_dict, self._prev_obs_dict, act)
+        info = self.get_info(obs_dict)
+
+        info['obs_dict'] = obs_dict
+        if self._prev_obs_dict is None:
+            info['prev_obs_dict'] = obs_dict
+        else:
+            info['prev_obs_dict'] = self._prev_obs_dict
+
+        self._prev_obs = copy.deepcopy(obs)
+        self._prev_obs_dict = copy.deepcopy(obs_dict)
+
+        return obs, obs_dict, rew, done, info
+
+
     def step(self, act, train_func=None):
         act = np.array(act)
 
@@ -292,6 +326,18 @@ class PandaEnv(gym.Env):
         delta_rot = delta_rot / self._max_rot_vel_norm * self.arm_client._delta_rot_limit
 
         # print(f"Obs to act delay: {timer() - self._obs_gen_time}")
+
+        if not self.arm_client.robot.is_running_policy():
+            obs, obs_dict, rew, done, info = self._get_obs_rew_done_info(act=act)
+            print(f"Policy not running on robot..possibly reflex error? Check server terminal.")
+            print(f"Activating freedrive and discading episode.")
+            self.arm_client.activate_freedrive()
+            self.grip_client.open()
+            print("Move robot to new reset-friendly pose and press enter.")
+            input()
+            self.arm_client.deactivate_freedrive()
+            done = True
+            return obs, rew, done, info
 
         self.arm_client.shift_EE_by(translation=delta_trans, base_frame=True, rot_base_frame=True)
 
@@ -316,35 +362,36 @@ class PandaEnv(gym.Env):
 
         self._elapsed_steps += 1  # used for get_suc
 
-        self.arm_client.get_and_update_state()
-        obs, obs_dict = self.prepare_obs()
-        if self._prev_obs_dict is None:
-            rew = self.get_rew(obs_dict, obs_dict, act)
-            suc = self.get_suc(obs_dict, obs_dict, act)
-            obs_dict['done_success'] = suc
-            done = self.get_done(obs_dict, obs_dict, act)
-        else:
-            rew = self.get_rew(obs_dict, self._prev_obs_dict, act)
-            suc = self.get_suc(obs_dict, self._prev_obs_dict, act)
-            obs_dict['done_success'] = suc
-            done = self.get_done(obs_dict, self._prev_obs_dict, act)
-        info = self.get_info(obs_dict)
+        obs, obs_dict, rew, done, info = self._get_obs_rew_done_info(act=act)
+        # self.arm_client.get_and_update_state()
+        # obs, obs_dict = self.prepare_obs()
+        # if self._prev_obs_dict is None:
+        #     rew = self.get_rew(obs_dict, obs_dict, act)
+        #     suc = self.get_suc(obs_dict, obs_dict, act)
+        #     obs_dict['done_success'] = suc
+        #     done = self.get_done(obs_dict, obs_dict, act)
+        # else:
+        #     rew = self.get_rew(obs_dict, self._prev_obs_dict, act)
+        #     suc = self.get_suc(obs_dict, self._prev_obs_dict, act)
+        #     obs_dict['done_success'] = suc
+        #     done = self.get_done(obs_dict, self._prev_obs_dict, act)
+        # info = self.get_info(obs_dict)
 
         if self._elapsed_steps >= self._max_episode_steps:
             info['env_done'] = done
             done = True
 
-        if self.cfg['done_on_success'] and suc:
+        if self.cfg['done_on_success'] and obs_dict['done_success']:
             done = True
 
-        info['obs_dict'] = obs_dict
-        if self._prev_obs_dict is None:
-            info['prev_obs_dict'] = obs_dict
-        else:
-            info['prev_obs_dict'] = self._prev_obs_dict
+        # info['obs_dict'] = obs_dict
+        # if self._prev_obs_dict is None:
+        #     info['prev_obs_dict'] = obs_dict
+        # else:
+        #     info['prev_obs_dict'] = self._prev_obs_dict
 
-        self._prev_obs = copy.deepcopy(obs)
-        self._prev_obs_dict = copy.deepcopy(obs_dict)
+        # self._prev_obs = copy.deepcopy(obs)
+        # self._prev_obs_dict = copy.deepcopy(obs_dict)
 
         return obs, rew, done, info
 

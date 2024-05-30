@@ -3,16 +3,20 @@
 ## HOME TODO
 - [x] Add in success evaluation (including aux) during RL exploration
 - [x] verify that reset pose randomization works properly
-- [ ] pick up laminated sheets from staples
-- [ ] pick up tape, brackets, washers from canadian tire
-- [ ] make door env
-  - [ ] add aruco marker client to observations
-  - [ ] decide on way to generate success data
+- [x] pick up laminated sheets from staples
+- [x] pick up tape, brackets, washers from canadian tire
+- [x] make door env
+  - [x] add aruco marker client to observations
+  - [x] decide on way to generate success data
 - [ ] make drawer env
 
 ## TODO
-- [ ] Verify rosetta works to control arm
+- [x] Verify rosetta works to control arm
+- [ ] need a clean way to recover if we hit a cartesian reflex/control error...right now this will immediately stop the whole episode
+  - [ ] we can just use `is_running_policy` in the env code
+  - [ ] implemented, need to test
 - [ ] Test reach on real arm
+  - [ ] most likely need to decrease max move dist or stiffness
 - [ ] staples trip (See below)
   - [ ] https://fodi.github.io/arucosheetgen/ for printing full tag sheets!
 - [x] (home) get tray
@@ -21,12 +25,20 @@
 - [ ] (home) test ar tags on cubes (can do this without 2inch cubes)
 
 ## Door and Drawer todo
-- [ ] Save the ee config json to put in panda_polymetis/conf/franka-desk
+- [x] Save the ee config json to put in panda_polymetis/conf/franka-desk
+- [ ] Choose shelf location/robot position boundaries and add to panda polymetis config
 - [ ] L brackets *or* mounting tape to fix shelves into place
+  - [ ] just marked location with tape for now
 - [ ] Manually find z height (and x/y pos) for door and drawer
   - [ ] THIS is actually how we get the pos limits / reset pose
   - [ ] to go from this height to getting a reset pose, we need to activate freedrive with fewer degrees of freedom
-- [ ] Manually find pos limits for arm (separate for each)
+    - [ ] reset_pose: [0.1653715, 0.4675048, 0.5384299, -1.623644, -0.8070195, 0.4270715]
+          reset_joints: [1.7601, -1.219508, -0.7970036, -2.686295, 0.7965282, 2.621956, -1.57055]
+    - [ ] new for drawer:
+      - [ ] reset_pose: [0.6534886, 0.1962629, 0.6356113, 1.91674, -0.7635592, 1.304907]
+            reset_joints: [0.9866469, -0.4365612, 0.007007468, -2.116341, -1.189016, 2.73617, -0.3003828]
+- [x] Manually find pos limits for arm (separate for each)
+  - [x] currenlty stored (with more freedom in z) as REAL_DEFAULT_POS_LIMITS in panda_client.py
 - [ ] Manually choose reset position + reset randomization limits
   - [ ] remember that it's going to make the most sense to allow it randomly explore a lot without resetting (i.e. long episodes)
   - [x] if we do long episodes, we can add in done on main success

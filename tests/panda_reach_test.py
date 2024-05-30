@@ -34,8 +34,8 @@ obs = env.reset()
 print("Environment reset complete, starting actions in 2s!")
 init_pose = env.arm_client.EE_pose
 suc_reach_pose = copy.deepcopy(init_pose)
-# suc_reach_pose.set_pos(np.array(env.cfg['reach_goal']))
-suc_reach_pose.set_pos(np.array(env.cfg['aux_reach_goal']))
+suc_reach_pose.set_pos(np.array(env.cfg['reach_goal']))
+# suc_reach_pose.set_pos(np.array(env.cfg['aux_reach_goal']))
 time.sleep(2)
 while not done:
     # action = env.action_space.sample()
