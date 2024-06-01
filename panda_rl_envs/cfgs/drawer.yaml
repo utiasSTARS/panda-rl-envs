@@ -3,26 +3,48 @@ reset_pose: [0.368471, 0.2031552, 0.6759039, 1.940141, -0.7794731, 1.301948]
 reset_joints: [1.18236, -1.137739, 0.2559622, -2.420432, -0.7352229, 2.245503, -0.5692185]
 
 # limits
-pos_limits: [[0.6538695, 0.2031552, 0.75], [0.3, 0.2031552, 0.55]]
+# max_trans_vel: .1  # m/s
+# max_rot_vel: .2    # rad/s
+max_trans_vel: .2  # m/s
+max_rot_vel: .4    # rad/s
+# pos_limits: [[0.61, 0.2031552, 0.75], [0.3, 0.2031552, 0.55]]  # fake limits away from drawer for testing
+# pos_limits: [[0.665, 0.2031552, 0.75], [0.3, 0.2031552, 0.55]]  # real limits including drawer
+pos_limits: [[0.654, 0.2031552, 0.75], [0.3, 0.2031552, 0.55]]  # real limits including drawer, a little shorter
+poseulsxyz_offset: [0, 0, 0, 0, 0, 0.6267]  # rotate limits to match geometry of shelves
+init_ee_high_lim: [0.41, 0.2031552, 0.7, 1.940141, -0.7794731, 1.301948]
+init_ee_low_lim: [0.31, 0.2031552, 0.6, 1.940141, -0.7794731, 1.301948]
 
 # task
+max_real_time: 12
 main_suc_thresh: 0.05
-reach_suc_thresh: 0.02
+reach_suc_thresh: 0.03
 suc_time_thresh: 0.5
-open_pos: [0.3, -0.1]
+closed_pos: [-0.15163285, 0.51310259]  # used for auto reset
+open_pos: [0.00542806, 0.35653859]   # pos in camera/aruco coordinates
+done_on_success: false
+
+# reset
+auto_reset: true
+auto_reset_poses: [[0.3677795, 0.2053491, 0.6342025, 1.940141, -0.7794731, 1.301948], [0.654, 0.1962629, 0.6356113, 1.91674, -0.7635592, 1.304907]]
+auto_reset_pose_times: [null, 4]
 
 # aux tasks
 # TODO grab from moving the arm to the correct reach position
 # other option is to just use distance between handle and ee directly
-handle_ee_pos: [0.3, -0.1]
-grasp_grip_pos: .004
+# for drawer, these are x, z positions
+
+# handle reach position...will delete assuming driving directly to handle_ee_pos works
+# reset_pose: [0.6534886, 0.1962629, 0.6356113, 1.91674, -0.7635592, 1.304907]
+# reset_joints: [0.9866469, -0.4365612, 0.007007468, -2.116341, -1.189016, 2.73617, -0.3003828]
+
+grasp_grip_pos: .015
 grasp_reach_suc_thresh: .005
-main_suc_pos: [0.4, -0.1]
-reach_suc_pos: [0.55, 0.1]
-grasp_suc_pos: [0.45, 0.0]
+main_suc_pos: [0.368741, 0.6759039]
+reach_suc_pos: [0.654, 0.63]
+grasp_suc_pos: [0.654, 0.63]
 main_suc_rand: [0.02, 0.02]
-reach_suc_rand: [0.01, 0.005]
-grasp_suc_rand: [0.005, 0.01]
+reach_suc_rand: [0.01, 0.01]
+grasp_suc_rand: [0.01, 0.0]
 
 # control
 valid_dof: [1, 0, 1, 0, 0, 0]

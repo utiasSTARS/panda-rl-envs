@@ -11,6 +11,7 @@ class PandaReach(PandaEnv):
     VALID_AUX_TASKS=('main', 'reach')
     def __init__(self, config_dict={}, config_file=None):
         if config_file is None:
+            raise NotImplementedError(f"Redo reach limits, poses, etc. for new cabinet position!")
             config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'reach.yaml')
         super().__init__(config_dict, config_file)
         self.cfg['reach_goal'] = np.array(self.cfg['reach_goal'])

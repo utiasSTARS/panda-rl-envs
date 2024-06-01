@@ -92,7 +92,7 @@ class PandaEnv(gym.Env):
 
         # observations
         self._obj_poses = OrderedDict()
-        if 'aruco' in self.cfg['obj_pose_type'] and not self.cfg['dummy_env']:
+        if 'aruco' in self.cfg['obj_pose_type'] and not self.cfg.get('dummy_env', False):
             if self.cfg['obj_pose_type'] != 'aruco_single':
                 raise NotImplementedError()
             hw = self.cfg['aruco_height_width']
@@ -110,22 +110,27 @@ class PandaEnv(gym.Env):
         # observation and action spaces
         self._rot_in_pose = sum(self.cfg['valid_dof'][3:]) > 0
         pose_dim = 0
-        pos_dim = sum(self.cfg['valid_dof'][:3])
-        pose_dim += pos_dim
+        self._valid_pos_dof = self.cfg['valid_dof'][:3].nonzero()[0]
+        self._pos_dim = sum(self.cfg['valid_dof'][:3])
+        self._valid_rot_dof = self.cfg['valid_dof'][3:].nonzero()[0]
+        self._rot_dim_rvec = sum(self.cfg['valid_dof'][3:])
+        pose_dim += self._pos_dim
         if self._rot_in_pose: pose_dim += 4
+        
         self._obj_rot_in_pose = sum(self.cfg['obj_valid_dof'][3:]) > 0
         obj_pose_dim = 0
-        obj_pos_dim = sum(self.cfg['obj_valid_dof'][:3])
-        obj_pose_dim += obj_pos_dim
+        self._obj_valid_pos_dof = self.cfg['obj_valid_dof'][:3].nonzero()[0]
+        self._obj_pos_dim = sum(self.cfg['obj_valid_dof'][:3])
+        obj_pose_dim += self._obj_pos_dim
         if self._obj_rot_in_pose: obj_pose_dim += 4
 
         if 'pos_obj_diff' in self.cfg['state_data']:
-            assert pos_dim == obj_pos_dim
+            assert self._pos_dim == self._obj_pos_dim
 
         obs_dim = \
             pose_dim * int('pose' in self.cfg['state_data']) + \
             obj_pose_dim * self.cfg['num_objs'] * int('obj_pose' in self.cfg['state_data']) + \
-            pos_dim * self.cfg['num_objs'] * int('pos_obj_diff' in self.cfg['state_data']) + \
+            self._pos_dim * self.cfg['num_objs'] * int('pos_obj_diff' in self.cfg['state_data']) + \
             1 * int('grip_pos' in self.cfg['state_data'])
         self.observation_space = spaces.Box(-np.inf, np.inf, (obs_dim,), dtype=np.float32)
 
@@ -154,15 +159,7 @@ class PandaEnv(gym.Env):
                 self._aux_suc_timers[t].reset()
 
         if self.cfg['grip_client']:
-            self.grip_client.open()
-            time.sleep(0.2)
-            attempts = 0
-            while not self.grip_client.is_fully_open() and attempts < 5:
-                attempts += 1
-                print(f"Gripper not yet open..try {attempts}/{5}")
-
-            if attempts >= 5:
-                raise ValueError("Gripper is not open.")
+            self.grip_client.open(blocking=True, timeout=5.0)
 
         self.arm_client.get_and_update_state()
         if self.cfg['init_ee_high_lim'] is not None and self.cfg['init_ee_low_lim'] is not None:
@@ -212,7 +209,7 @@ class PandaEnv(gym.Env):
         state_dict = {}
         self.arm_client.get_and_update_state()
         pose = self.arm_client.EE_pose.get_array_quat()
-        valid_pos = pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
+        valid_pos = pose[self._valid_pos_dof]
         valid_rot = np.array([])
         if self._rot_in_pose:
             valid_rot = pose[3:]
@@ -238,7 +235,8 @@ class PandaEnv(gym.Env):
 
         if 'obj_pose' in self.cfg['state_data']:
             for obj_pose_k, obj_pose in self._obj_poses.items():
-                valid_obj_pos = obj_pose[:3][self.cfg['obj_valid_dof'][:3].nonzero()[0]]
+                # valid_obj_pos = obj_pose[:3][self.cfg['obj_valid_dof'][:3].nonzero()[0]]
+                valid_obj_pos = obj_pose[self._obj_valid_pos_dof]
                 valid_obj_rot = np.array([])
                 if self._obj_rot_in_pose:
                     valid_obj_rot = obj_pose[4:]
@@ -248,7 +246,7 @@ class PandaEnv(gym.Env):
 
         if 'pos_obj_diff' in self.cfg['state_data']:
             for obj_pose_k, obj_pose in self._obj_poses.items():
-                valid_obj_pos = obj_pose[:3][self.cfg['valid_dof'][:3].nonzero()[0]]
+                valid_obj_pos = obj_pose[self._obj_valid_pos_dof]
                 pos_obj_diff = valid_pos - valid_obj_pos
                 state_list.append(pos_obj_diff)
                 state_dict['pos_' + obj_pose_k + '_diff'] = pos_obj_diff
@@ -256,9 +254,10 @@ class PandaEnv(gym.Env):
         if 'grip_pos' in self.cfg['state_data']:
             self.grip_client.get_and_update_state()
             raw_grip_pos = self.grip_client._pos
-            # normalize to -1, 1, min grip pos is 0
-            max_pos = .5 * self.grip_client.open_width
-            grip_pos = (raw_grip_pos - max_pos) / max_pos
+            # normalize to -1, 1, min grip pos is 0...going to leave out for now instead
+            # max_pos = .5 * self.grip_client.open_width
+            # grip_pos = (raw_grip_pos - max_pos) / max_pos
+            grip_pos = raw_grip_pos
             state_list.append(np.array([grip_pos]))
             state_dict['grip_pos'] = grip_pos
 
@@ -319,30 +318,38 @@ class PandaEnv(gym.Env):
             raise ValueError(f"Env requires act shape {self.action_space.shape}, act supplied has shape {act.shape}")
 
         # actions are rescaled s.t. +1 in all dimensions gives a movement of corresponding max vel
-        # also assuming that actions are clipped to +1,-1, but env will force that anyways
-        delta_trans = act[:3]
+        # also assuming that actions are clipped to +1,-1, but client will force that anyways
+        delta_trans = np.zeros(3)
+        delta_trans[self._valid_pos_dof] = act[:self._pos_dim]
         delta_trans = delta_trans / self._max_trans_vel_norm * self.arm_client._delta_pos_limit
-        delta_rot = act[3:]
+        delta_rot = np.zeros(3)
+        delta_rot[self._valid_rot_dof] = act[self._pos_dim:self._pos_dim + self._rot_dim_rvec]
         delta_rot = delta_rot / self._max_rot_vel_norm * self.arm_client._delta_rot_limit
 
         # print(f"Obs to act delay: {timer() - self._obs_gen_time}")
 
-        if not self.arm_client.robot.is_running_policy():
+        # print(f"DEBUG: act: {act}")
+
+        suc_shift = self.arm_client.shift_EE_by(translation=delta_trans, base_frame=True, rot_base_frame=True)
+        if not suc_shift:
             obs, obs_dict, rew, done, info = self._get_obs_rew_done_info(act=act)
             print(f"Policy not running on robot..possibly reflex error? Check server terminal.")
-            print(f"Activating freedrive and discading episode.")
-            self.arm_client.activate_freedrive()
-            self.grip_client.open()
-            print("Move robot to new reset-friendly pose and press enter.")
-            input()
-            self.arm_client.deactivate_freedrive()
+            print(f"Ending episode and attempting reset...")
+            self.reset()
+
+            # if not self.arm_client.robot.is_running_policy():
+            # print(f"Activating freedrive and ending episode.")
+            # self.arm_client.activate_freedrive()
+            # self.grip_client.open()
+            # print("Move robot to new reset-friendly pose and press enter.")
+            # input()
+            # self.arm_client.deactivate_freedrive()
+            
             done = True
             return obs, rew, done, info
 
-        self.arm_client.shift_EE_by(translation=delta_trans, base_frame=True, rot_base_frame=True)
-
         if self.cfg['grip_in_action']:
-            self.grip_client.open() if act[-1] < 0 else self.grip_client.close()
+            self.grip_client.open() if act[-1] <= 0 else self.grip_client.close()
 
         # train during step/sleep
         if train_func:
@@ -363,19 +370,6 @@ class PandaEnv(gym.Env):
         self._elapsed_steps += 1  # used for get_suc
 
         obs, obs_dict, rew, done, info = self._get_obs_rew_done_info(act=act)
-        # self.arm_client.get_and_update_state()
-        # obs, obs_dict = self.prepare_obs()
-        # if self._prev_obs_dict is None:
-        #     rew = self.get_rew(obs_dict, obs_dict, act)
-        #     suc = self.get_suc(obs_dict, obs_dict, act)
-        #     obs_dict['done_success'] = suc
-        #     done = self.get_done(obs_dict, obs_dict, act)
-        # else:
-        #     rew = self.get_rew(obs_dict, self._prev_obs_dict, act)
-        #     suc = self.get_suc(obs_dict, self._prev_obs_dict, act)
-        #     obs_dict['done_success'] = suc
-        #     done = self.get_done(obs_dict, self._prev_obs_dict, act)
-        # info = self.get_info(obs_dict)
 
         if self._elapsed_steps >= self._max_episode_steps:
             info['env_done'] = done

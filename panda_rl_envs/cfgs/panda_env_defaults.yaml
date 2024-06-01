@@ -3,8 +3,8 @@ server_ip: "192.168.2.100"  # robot is 192.168.2.2
 ee_config_json: null
 
 # limits
-max_trans_vel: .2  # m/s
-max_rot_vel: .4    # rad/s
+max_trans_vel: .1  # m/s
+max_rot_vel: .2    # rad/s
 pos_limits: [[0.6, 0.3, 0.5], [0.1, -0.45, 0.0]]  # should be lower than hardware limits
 poseulsxyz_offset: [0, 0, 0, 0, 0, 0.6267]  # rotate limits to match geometry of shelves
 

@@ -8,21 +8,42 @@
 - [x] make door env
   - [x] add aruco marker client to observations
   - [x] decide on way to generate success data
-- [ ] make drawer env
+- [x] make drawer env
 
 ## TODO
 - [x] Verify rosetta works to control arm
-- [ ] need a clean way to recover if we hit a cartesian reflex/control error...right now this will immediately stop the whole episode
-  - [ ] we can just use `is_running_policy` in the env code
-  - [ ] implemented, need to test
-- [ ] Test reach on real arm
-  - [ ] most likely need to decrease max move dist or stiffness
-- [ ] staples trip (See below)
+- [x] need a clean way to recover if we hit a cartesian reflex/control error...right now this will immediately stop the whole episode
+  - [x] we can just use `is_running_policy` in the env code
+  - [x] implemented, need to test
+  - [ ] works, but not tested at large scale yet
+- [x] Test reach on real arm
+  - [x] most likely need to decrease max move dist or stiffness
+- [x] staples trip (See below)
   - [ ] https://fodi.github.io/arucosheetgen/ for printing full tag sheets!
 - [x] (home) get tray
 - [x] (home) get 2inch cubes
 - [x] (home) test ar tags for door/drawer
 - [ ] (home) test ar tags on cubes (can do this without 2inch cubes)
+
+## DRAWER TODO
+- [x] add randomization to initial pose
+- [x] test reward/success functions with a panda_drawer_test.py file
+- [x] test success example code to verify poses/limits are correct
+- [x] collect and move success example data
+- [x] test exploration with limits not allowing drawer interaction
+- [ ] many steps with no action get added during automatic error recovery...would be preferable to just immediatley revert the controller upon error, instead of get 3 secs (15 frames) worth of bad data
+- [ ] things to try for improvement
+  - [ ] higher action mag
+  - [ ] higher stiffness (maybe this first)
+  - [ ] different arm position that would allow more accurate pose tracking
+  - [ ] may31_first: 250 stiffness, tvel .2
+    - [ ] turns out i messed the 2nd half of this run up entirely by dropping tvel to .1
+  - [ ] also tried: 500 stiffness, tvel .1...too slow
+  - [ ] trying: 500 stiffness, tvel .2...very aggressive, fixed bug where bad data was being added to buffer
+  - [ ] now trying: 250 stiffness, tvel .2, bug fixed
+- [x] depending on how successful, add in self-resetting via detection of drawer position, set of hardcoded poses to automatically close drawer
+  - [ ] works! all we need to figure out is the true close position (and open), since they appear to have changed...
+- [x] alos we don't need the force-torque sensor to ensure that our impedance controller works the way we want, we can just cap the allowable differene between target pose and actual pose to specific values!!
 
 ## Door and Drawer todo
 - [x] Save the ee config json to put in panda_polymetis/conf/franka-desk
