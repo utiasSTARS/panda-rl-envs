@@ -59,7 +59,8 @@ class PandaEnv(gym.Env):
             only_positive_ee_quat=self.cfg['only_positive_ee_quat'],
             ee_config_json=self.cfg['ee_config_json'],
             pos_limits=self.cfg['pos_limits'],
-            base_poseulsxyz_offset=self.cfg['poseulsxyz_offset']
+            base_poseulsxyz_offset=self.cfg['poseulsxyz_offset'],
+            max_force_from_error=self.cfg['max_force_from_error']
         )
 
         # task
@@ -159,7 +160,8 @@ class PandaEnv(gym.Env):
                 self._aux_suc_timers[t].reset()
 
         if self.cfg['grip_client']:
-            self.grip_client.open(blocking=True, timeout=5.0)
+            # self.grip_client.open(blocking=True, timeout=5.0)
+            self.grip_client.open()
 
         self.arm_client.get_and_update_state()
         if self.cfg['init_ee_high_lim'] is not None and self.cfg['init_ee_low_lim'] is not None:
@@ -179,14 +181,26 @@ class PandaEnv(gym.Env):
             new_arm_pose = PoseTransformer(
                     pose=matrix2pose(self._reset_base_tool_pose.get_matrix() @ reset_pose_shift_mat))
 
-        if self.cfg['initial_reset_to_joints']:
-            if self.arm_client.sim:
-                self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.5)
-            else:
-                self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.1)
+        self.send_reset_poses(new_arm_pose)
+        # if self.cfg['initial_reset_to_joints']:
+        #     if self.arm_client.sim:
+        #         self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.5)
+        #     else:
+        #         self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.1)
 
-        self.arm_client.move_EE_to(new_arm_pose)  # blocks to move
-        self.arm_client.reset(target_pose=new_arm_pose, init_pose=new_arm_pose)  # resets current desired poses
+        # self.arm_client.move_EE_to(new_arm_pose)  # blocks to move
+        # self.arm_client.reset(target_pose=new_arm_pose, init_pose=new_arm_pose)  # resets current desired poses
+
+        if self.cfg['auto_reset']:
+            _, ar_obs_dict = self.prepare_obs()
+            open_dist = np.linalg.norm(
+                ar_obs_dict[f"{self.cfg['auto_reset_obj']}_pose"] - self.cfg['closed_pos'])
+            if open_dist > self.cfg['auto_reset_thresh']:
+                print(f"Detected {self.cfg['auto_reset_obj']} open {open_dist}, auto closing.")
+                for pose, ttg in zip(self.cfg['auto_reset_poses'], self.cfg['auto_reset_pose_times']):
+                    pose_tf = PoseTransformer(pose=pose, rotation_representation='euler', axes='sxyz')
+                    self.arm_client.move_EE_to(pose_tf, time_to_go=ttg)
+                self.send_reset_poses(new_arm_pose)
 
         self.arm_client.start_controller()
         attempts = 0
@@ -198,10 +212,23 @@ class PandaEnv(gym.Env):
         if attempts >= 5:
             raise ValueError("Polymetis controller wouldn't start.")
 
+        if self.cfg['grip_client']:
+            self.grip_client.open(blocking=True, timeout=5.0, force_send=True)
+
         obs, obs_dict = self.prepare_obs()
         self._prev_obs = copy.deepcopy(obs)
         self._prev_obs_dict = copy.deepcopy(obs_dict)
         return obs
+
+    def send_reset_poses(self, new_arm_pose):
+        if self.cfg['initial_reset_to_joints']:
+            if self.arm_client.sim:
+                self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.5)
+            else:
+                self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.1)
+
+        self.arm_client.move_EE_to(new_arm_pose, time_to_go=1.)  # blocks to move
+        self.arm_client.reset(target_pose=new_arm_pose, init_pose=new_arm_pose)  # resets current desired poses
 
     def prepare_obs(self):
         # overwrite with child classes

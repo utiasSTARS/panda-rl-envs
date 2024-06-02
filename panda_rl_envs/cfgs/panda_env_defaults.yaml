@@ -20,6 +20,7 @@ reset_pose: null
 init_ee_random_lim: [0, 0, 0, 0, 0, 0]
 init_ee_high_lim: null
 init_ee_low_lim: null
+auto_reset: false
 
 # control
 control_hz: 5

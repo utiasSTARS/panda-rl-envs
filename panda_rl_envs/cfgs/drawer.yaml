@@ -4,15 +4,17 @@ reset_joints: [1.18236, -1.137739, 0.2559622, -2.420432, -0.7352229, 2.245503, -
 
 # limits
 # max_trans_vel: .1  # m/s
-# max_rot_vel: .2    # rad/s
+# max_trans_vel: .15  # m/s
 max_trans_vel: .2  # m/s
-max_rot_vel: .4    # rad/s
+# max_trans_vel: .3  # m/s
 # pos_limits: [[0.61, 0.2031552, 0.75], [0.3, 0.2031552, 0.55]]  # fake limits away from drawer for testing
 # pos_limits: [[0.665, 0.2031552, 0.75], [0.3, 0.2031552, 0.55]]  # real limits including drawer
-pos_limits: [[0.654, 0.2031552, 0.75], [0.3, 0.2031552, 0.55]]  # real limits including drawer, a little shorter
+pos_limits: [[0.66, 0.2031552, 0.75], [0.3, 0.2031552, 0.55]]  # real limits including drawer, a little shorter
 poseulsxyz_offset: [0, 0, 0, 0, 0, 0.6267]  # rotate limits to match geometry of shelves
 init_ee_high_lim: [0.41, 0.2031552, 0.7, 1.940141, -0.7794731, 1.301948]
 init_ee_low_lim: [0.31, 0.2031552, 0.6, 1.940141, -0.7794731, 1.301948]
+max_force_from_error: 12.5  # good for 250 stiff
+# max_force_from_error: 15.0  # testing for 500 stiff
 
 # task
 max_real_time: 12
@@ -25,7 +27,10 @@ done_on_success: false
 
 # reset
 auto_reset: true
+auto_reset_obj: 'handle'
+auto_reset_thresh: .02
 auto_reset_poses: [[0.3677795, 0.2053491, 0.6342025, 1.940141, -0.7794731, 1.301948], [0.654, 0.1962629, 0.6356113, 1.91674, -0.7635592, 1.304907]]
+# auto_reset_poses: [[0.654, 0.1962629, 0.6356113, 1.91674, -0.7635592, 1.304907]]
 auto_reset_pose_times: [null, 4]
 
 # aux tasks
@@ -40,8 +45,8 @@ auto_reset_pose_times: [null, 4]
 grasp_grip_pos: .015
 grasp_reach_suc_thresh: .005
 main_suc_pos: [0.368741, 0.6759039]
-reach_suc_pos: [0.654, 0.63]
-grasp_suc_pos: [0.654, 0.63]
+reach_suc_pos: [0.66, 0.63]
+grasp_suc_pos: [0.66, 0.63]
 main_suc_rand: [0.02, 0.02]
 reach_suc_rand: [0.01, 0.01]
 grasp_suc_rand: [0.01, 0.0]

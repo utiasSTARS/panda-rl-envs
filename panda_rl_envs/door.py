@@ -40,7 +40,9 @@ class PandaDoor(PandaEnv):
             specific_timer = self._suc_timer
 
         if task == 'main':
-            suc = np.linalg.norm(obs_dict['handle_pose'] - self.cfg['open_pos']) <= self.cfg['main_suc_thresh']
+            ee_suc = np.linalg.norm(obs_dict['pose'] - self.cfg['main_suc_pos']) <= self.cfg['main_suc_thresh']
+            door_suc = np.linalg.norm(obs_dict['handle_pose'] - self.cfg['open_pos']) <= self.cfg['main_suc_thresh']
+            suc = ee_suc and door_suc
         elif task in ['reach', 'grasp']:
             if 'pos_obj_diff' in self.cfg['state_data']:
                 suc = np.linalg.norm(obs_dict['pos_handle_diff']) <= self.cfg['reach_suc_thresh']

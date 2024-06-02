@@ -25,6 +25,51 @@
 - [x] (home) test ar tags for door/drawer
 - [ ] (home) test ar tags on cubes (can do this without 2inch cubes)
 
+## June 2 new plan
+1. 45 degree angle of gripper (new env name)
+2. not 1000 steps, not 60 steps...maybe 200?
+   1. actually going to go back to resetting first, doesn't seem like many steps is actually working
+3. try higher tau again first
+   1. ..possibly drop gradient steps
+
+## June 1 to try
+- [x] 500 stiffness + tvel .1 with new fixes
+  - [x] in progress
+  - [x] stuck in bad policy that goes to top corner for at least 20 minutes
+  - [x] conclusion..this arrangement doesn't allow enough random exploration!
+- [x] verify expert data isn't wrong
+- [x] 1000 timestep episodes
+  - [x] done on success
+    - [x] calculation of drawer success needs to be fixed...drawer open plus gripper open plus gripper x pos lower than drawer x pos
+    - [x] this is not wokring for some reason...debug this
+      - [x] nvm this is working!
+  - [x] alternating between WRS + 120120120, 20 timestep sched period is fine
+  - [x] dropping stiffness back to 250
+  - [x] need to verify this is actually workign properly...take away debug statements, check scheduler outputs
+  - [ ] still a bug in scheduler update that makes it print at 360 steps for some reason?
+- [x] 400 stiffness + tvel .15
+  - [x] verify that tvel .15 doesn't hit the drawers in polykey
+  - [ ] in progress
+- [ ] call 000 only 25% of the time, instead of 50%
+  - [ ] in progress on run above
+- [x] 400 stiffness + tvel .2
+  - [x] verify doesn't hit drawers in polykey
+  - [x] verified, and bug fixed
+  - [x] stiffness this high still fails quite often -- i think lower is better
+  - [x] in progress
+- [ ] 250 stiffness, tvel .2, tau 5e-3
+- [ ] 250 stiffness, tvel .3, 1000 timestep eps
+- [ ] 3Hz? 250 stiffness, tvel .2?
+- [ ] no grasping, just hook and slightly different angle
+- [ ] 500 stiffness, tvel .2, 10Hz?
+- [ ] fewer gradient steps per step? and more random exploration?
+  - [ ] yes more random exploration
+
+### BIG BUG FOUND
+- all pose adjustments, including enforcing limits, was happening AFTER the desired pose was already set
+  - this is why we were crashing into the doors
+  - this is also why force adjustments weren't happening right away
+
 ## DRAWER TODO
 - [x] add randomization to initial pose
 - [x] test reward/success functions with a panda_drawer_test.py file
@@ -42,7 +87,7 @@
   - [ ] trying: 500 stiffness, tvel .2...very aggressive, fixed bug where bad data was being added to buffer
   - [ ] now trying: 250 stiffness, tvel .2, bug fixed
 - [x] depending on how successful, add in self-resetting via detection of drawer position, set of hardcoded poses to automatically close drawer
-  - [ ] works! all we need to figure out is the true close position (and open), since they appear to have changed...
+  - [x] works! all we need to figure out is the true close position (and open), since they appear to have changed...
 - [x] alos we don't need the force-torque sensor to ensure that our impedance controller works the way we want, we can just cap the allowable differene between target pose and actual pose to specific values!!
 
 ## Door and Drawer todo
