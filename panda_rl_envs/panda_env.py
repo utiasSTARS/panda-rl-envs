@@ -117,7 +117,7 @@ class PandaEnv(gym.Env):
         self._rot_dim_rvec = sum(self.cfg['valid_dof'][3:])
         pose_dim += self._pos_dim
         if self._rot_in_pose: pose_dim += 4
-        
+
         self._obj_rot_in_pose = sum(self.cfg['obj_valid_dof'][3:]) > 0
         obj_pose_dim = 0
         self._obj_valid_pos_dof = self.cfg['obj_valid_dof'][:3].nonzero()[0]
@@ -379,7 +379,7 @@ class PandaEnv(gym.Env):
             # print("Move robot to new reset-friendly pose and press enter.")
             # input()
             # self.arm_client.deactivate_freedrive()
-            
+
             done = True
             return obs, rew, done, info
 

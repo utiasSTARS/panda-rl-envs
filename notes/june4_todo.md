@@ -13,6 +13,8 @@
 - [ ] Need code for loading model checkpoints and restarting training in a new folder.
   - [ ] need to handle loading existing buffer up to a specific timestep
   - [ ] need to handle loading data from one folder/checkpoint and generating a brand new folder (with a modified experiment name) for the new run -- this will be for the exploration videos
+  - [ ] i think lfgp code basically already handles this...need to confirm
+  - [ ] except that the train progress file is different...we need to load that
 - [ ] finish writing and test evaluate_models.py code
   - [ ] needs to handle case where script stopped running...save data after every evaluated episode
 - [ ] run single task sqil on env and get same data as all of above
