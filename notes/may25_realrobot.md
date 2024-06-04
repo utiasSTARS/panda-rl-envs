@@ -25,11 +25,24 @@
 - [x] (home) test ar tags for door/drawer
 - [ ] (home) test ar tags on cubes (can do this without 2inch cubes)
 
+## June 3 todo
+- [ ] Run drawer opening to ~~20k~~ 30k
+  - [ ] in paper, will show during train eval, plus true eval at 5k intervals (20 ep per task?)
+  - [ ] maybe exlusively during task runs
+- [x] try to find camera fitting for good tripod
+- [x] fix black backdrop to have better coverage
+- [ ] rerun drawer opening learning while taking (multiple) timelapses
+- [ ] run drawer opening with single task data
+- [ ] figure out how to add it as figure to paper
+- [ ] with extra time, try door opening
+
 ## June 2 new plan
-1. 45 degree angle of gripper (new env name)
-2. not 1000 steps, not 60 steps...maybe 200?
+1. Try 3Hz control/exploration to see how it looks
+2. Switch to 1 DOF drawer env
+3. 45 degree angle of gripper (new env name)
+4. not 1000 steps, not 60 steps...maybe 200?
    1. actually going to go back to resetting first, doesn't seem like many steps is actually working
-3. try higher tau again first
+5. try higher tau again first
    1. ..possibly drop gradient steps
 
 ## June 1 to try

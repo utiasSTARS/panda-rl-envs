@@ -154,14 +154,20 @@ class PandaEnv(gym.Env):
         self._elapsed_steps = 0
         self._suc_timer.reset()
 
+        self.arm_client.activate_freedrive()  # make controller completely compliant
+
         # aux task handling
         if hasattr(self, '_aux_suc_timers'):
             for t in self._aux_suc_timers:
                 self._aux_suc_timers[t].reset()
 
         if self.cfg['grip_client']:
-            # self.grip_client.open(blocking=True, timeout=5.0)
-            self.grip_client.open()
+            # self.grip_client.open()
+            grip_suc = self.grip_client.open(blocking=True, timeout=5.0)
+            if not grip_suc:
+                print("Grip client didn't open, attempting reset with it open to current pos.")
+                self.grip_client.get_and_update_state()
+                self.grip_client.send_move_goal(width=self.grip_client._pos - .01)
 
         self.arm_client.get_and_update_state()
         if self.cfg['init_ee_high_lim'] is not None and self.cfg['init_ee_low_lim'] is not None:
@@ -213,7 +219,9 @@ class PandaEnv(gym.Env):
             raise ValueError("Polymetis controller wouldn't start.")
 
         if self.cfg['grip_client']:
-            self.grip_client.open(blocking=True, timeout=5.0, force_send=True)
+            grip_suc = self.grip_client.open(blocking=True, timeout=5.0, force_send=True)
+            if not grip_suc:
+                raise ValueError("Gripper did not open during reset.")
 
         obs, obs_dict = self.prepare_obs()
         self._prev_obs = copy.deepcopy(obs)
