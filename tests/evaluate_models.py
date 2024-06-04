@@ -6,9 +6,10 @@ from ast import literal_eval
 
 import numpy as np
 
-from rl_sandbox.examples.eval_tools.utils import load_model
+from rl_sandbox.examples.eval_tools.utils import load_model, get_aux_rew_aux_suc
 from rl_sandbox.examples.eval_tools.evaluate import evaluate
 from rl_sandbox.learning_utils import evaluate_policy
+from rl_sandbox.utils import get_rng_state, set_rng_state
 import rl_sandbox.constants as c
 from rl_sandbox.algorithms.sac_x.schedulers import FixedScheduler
 
@@ -33,6 +34,7 @@ parser.add_argument('--model_min', type=int, default=0)
 parser.add_argument('--model_max', type=int, default=100000)
 parser.add_argument('--device', type=str, default='cuda:0')
 parser.add_argument('--num_eval_eps', type=int, default=10)
+parser.add_argument('--stochastic', action='store_true')
 args = parser.parse_args()
 
 
@@ -40,6 +42,7 @@ args = parser.parse_args()
 # - the values that are already in the train.pkl file (i.e. only append, don't delete)
 # - evaluation_successes_all_tasks: a list for each eval checkpoint, with each entry containing a
 #   (num_tasks, num_tasks * num_eval_eps) np array with 1s and 0s for success
+# - specifically want to customize and not be forced to evaluate non main task
 # - evaluation_returns: same, but for returns instead of success
 # - when this script is run, immediately generate a list of length of number of saved models in this directory,
 #   but initially populated with None so we know which are invalid
@@ -50,10 +53,11 @@ args = parser.parse_args()
 forced_schedule = None if args.forced_schedule == "" else literal_eval(args.forced_schedule)
 
 if 'multi' in args.algo:
-    config_file = 'dac_experiment_setting.pkl'
-else:
     config_file = 'lfgp_experiment_setting.pkl'
-exp_path = os.path.join(args.top_save_path, args.env_name, args.model_seed, args.algo, args.exp_name)
+else:
+    config_file = 'dac_experiment_setting.pkl'
+
+exp_path = os.path.join(args.top_save_path, args.env_name, str(args.model_seed), args.algo, args.exp_name)
 all_exps = glob.glob(os.path.join(exp_path, '*'))
 if len(all_exps) == 0:
     raise ValueError(f"No folders found in {exp_path}")
@@ -66,48 +70,94 @@ model_paths = sorted(glob.glob(os.path.join(main_model_path, '*0.pt')))
 model_ints = [int(m.split('/')[-1].split('.pt')[0]) for m in model_paths]
 
 # get number of valid aux tasks from one ex model
-config, _, _, _ = load_model(0, config_path, model_paths[0], args.aux_task,
-                                                      args.device, include_disc=False, force_egl=False)
+config, _, _ = load_model(0, config_path, model_paths[0], args.aux_task,
+                          include_env=False, device=args.device, include_disc=False, force_egl=False)
 num_aux_tasks = config[c.NUM_TASKS]
 
 train_file_path = os.path.join(main_model_path, 'train.pkl')
 train_file_dict = pickle.load(open(train_file_path, 'rb'))
 if 'valid_eval' not in train_file_dict:
     train_file_dict['valid_eval'] = {}
-if 'evaluation_successes_all_tasks' not in train_file_dict:
-    train_file_dict['evaluation_successes_all_tasks'] = [] * len(model_paths)
-if 'evaluation_returns' not in train_file_dict:
-    train_file_dict['evaluation_returns'] = [] * len(model_paths)
+if 'evaluation_successes_all_tasks' not in train_file_dict or train_file_dict['evaluation_successes_all_tasks'] == []:
+    train_file_dict['evaluation_successes_all_tasks'] = [[]] * len(model_paths)
+if 'evaluation_returns' not in train_file_dict or train_file_dict['evaluation_returns'] == []:
+    train_file_dict['evaluation_returns'] = [[]] * len(model_paths)
 for m_int_i, m_int in enumerate(model_ints):
     if m_int not in train_file_dict['valid_eval']:
-        train_file_dict['valid_eval'][m_int] = np.zeros(num_aux_tasks, num_aux_tasks * args.num_eval_eps)
-        train_file_dict['evaluation_successes_all_tasks'][m_int_i] = np.zeros(num_aux_tasks, num_aux_tasks * args.num_eval_eps)
-        train_file_dict['evaluation_returns'][m_int_i] = np.zeros(num_aux_tasks, num_aux_tasks * args.num_eval_eps)
+        # eval is done in parallel, so don't ned num_aux_tasks * args.num_eval_eps in valid_eval
+        train_file_dict['valid_eval'][m_int] = np.zeros([num_aux_tasks, args.num_eval_eps])
+        train_file_dict['evaluation_successes_all_tasks'][m_int_i] = np.zeros([num_aux_tasks, num_aux_tasks * args.num_eval_eps])
+        train_file_dict['evaluation_returns'][m_int_i] = np.zeros([num_aux_tasks, num_aux_tasks * args.num_eval_eps])
+
+# add random state to dict as well so that we handle resets properly
+if 'eval_np_rng_state' not in train_file_dict:
+    rng_state_dict = get_rng_state()
+    for rng_k, rng_v in rng_state_dict.items():
+        train_file_dict[f"eval_{rng_k}"] = rng_v
+else:
+    set_rng_state(train_file_dict['eval_torch_rng_state'], train_file_dict['eval_np_rng_state'])
+
 safe_save_train_dict(train_file_dict, train_file_path)
 
 models_to_test = []
+model_ints_to_test = []
 for m_path, m_int in zip(model_paths, model_ints):
     if args.model_min < m_int < args.model_max:
         models_to_test.append(m_path)
+        model_ints_to_test.append(m_int)
 
-for m_path in models_to_test:
-    config, env, buffer_preprocessing, agent = load_model(args.eval_seed, config_path, m_path, args.intention,
-                                                        args.device, include_disc=False, force_egl=args.force_egl)
+env = None
+
+for m_path, m_int in zip(models_to_test, model_ints_to_test):
+    # check where we are in testing
+    valid_eval = train_file_dict['valid_eval'][m_int][args.aux_task]
+    if np.all(valid_eval):
+        print(f"All eval complete for {m_path}, moving on to next")
+        continue
+
+    if env is None:
+        config, env, buffer_preprocessing, agent = load_model(args.eval_seed, config_path, m_path, args.aux_task,
+                                                            args.device, include_disc=False)
+    else:
+        config, buffer_preprocessing, agent = load_model(args.eval_seed, config_path, m_path, args.aux_task,
+                                        args.device, include_env=False, include_disc=False)
+
+    aux_rew, aux_suc = get_aux_rew_aux_suc(config, env)
 
     if hasattr(agent, 'high_level_model'):
         agent.high_level_model = FixedScheduler(args.aux_task, num_aux_tasks)
 
+    if not np.any(valid_eval):
+        first_ep = 0
+    else:
+        first_ep = valid_eval.nonzero()[0][-1] + 1
 
+    if first_ep == 0:
+        env.seed(args.eval_seed)
 
+    for ep_i in range(first_ep, args.num_eval_eps):
+        print(f"Starting evaluation of aux task {args.aux_task}, model {m_int}, ep {ep_i}")
+        rets, _, all_suc = evaluate_policy(agent=agent,
+                                           env=env,
+                                           buffer_preprocess=buffer_preprocessing,
+                                           num_episodes=1,
+                                           clip_action=config[c.CLIP_ACTION],
+                                           min_action=config[c.MIN_ACTION],
+                                           max_action=config[c.MAX_ACTION],
+                                           render=False,
+                                           auxiliary_reward=aux_rew,
+                                           auxiliary_success=aux_suc,
+                                           verbose=True,
+                                           forced_schedule=forced_schedule,
+                                           stochastic_policy=args.stochastic)
 
-# python ../../../rl_sandbox/rl_sandbox/examples/eval_tools/evaluate.py \
-# --seed="${SEED}" \
-# --model_path="${MODEL_PATH}" \
-# --config_path="${CONFIG_PATH}" \
-# --num_episodes="${NUM_EPISODES}" \
-# --intention="${INTENTION}" \
-# --model_path="${MODEL_PATH}" \
-# --forced_schedule="${FORCED_SCHEDULE}" \
-# --force_egl \
-# --render \
-# --render_substeps
+        train_file_dict['valid_eval'][m_int][args.aux_task][ep_i] = 1
+
+        ep_i_in_full_array = args.aux_task * args.num_eval_eps + ep_i
+        train_file_dict['evaluation_successes_all_tasks'][args.aux_task][:, ep_i_in_full_array] = all_suc.flatten()
+        train_file_dict['evaluation_returns'][args.aux_task][:, ep_i_in_full_array] = rets.flatten()
+        rng_state_dict = get_rng_state()
+        for rng_k, rng_v in rng_state_dict.items():
+            train_file_dict[f"eval_{rng_k}"] = rng_v
+
+        safe_save_train_dict(train_file_dict, train_file_path)

@@ -10,12 +10,13 @@
 - get main task success at each checkpoint, 10 eps per checkpoint...finish up evaluate_models.py script for this
 
 ## todo
-- [ ] Need code for loading model checkpoints and restarting training in a new folder.
-  - [ ] need to handle loading existing buffer up to a specific timestep
-  - [ ] need to handle loading data from one folder/checkpoint and generating a brand new folder (with a modified experiment name) for the new run -- this will be for the exploration videos
-  - [ ] i think lfgp code basically already handles this...need to confirm
-  - [ ] except that the train progress file is different...we need to load that
-- [ ] finish writing and test evaluate_models.py code
-  - [ ] needs to handle case where script stopped running...save data after every evaluated episode
-- [ ] run single task sqil on env and get same data as all of above
-  - [ ] run this while developing and testing the other code simultaneously
+- [x] Need code for loading model checkpoints and restarting training in a new folder.
+  - [x] need to handle loading existing buffer up to a specific timestep
+  - [x] need to handle loading data from one folder/checkpoint and generating a brand new folder (with a modified experiment name) for the new run -- this will be for the exploration videos
+  - [x] i think lfgp code basically already handles this...need to confirm
+  - [x] except that the train progress file is different...we need to load that
+- [x] finish writing and test evaluate_models.py code
+  - [x] needs to handle case where script stopped running...save data after every evaluated episode
+- [x] run single task sqil on env and get same data as all of above
+  - [x] run this while developing and testing the other code simultaneously
+  - [ ] getting DAC (both with no q over max penalty), and might get RCE as well if there's time
