@@ -69,8 +69,6 @@ class PandaDoor(PandaEnv):
         pose = copy.deepcopy(self._reset_base_tool_pose)
         for dof_i, dof in enumerate(valid_dof):
             setattr(pose.pose.position, dof_coord_dict[dof], self.cfg[f'{task}_suc_pos'][dof_i])
-        # pose.pose.position.x = self.cfg[f'{task}_suc_pos'][0]
-        # pose.pose.position.y = self.cfg[f'{task}_suc_pos'][1]
 
         self.arm_client.move_EE_to(pose)
 
@@ -93,11 +91,6 @@ class PandaDoor(PandaEnv):
             self.arm_client._pos_limits[1][dof] = getattr(pose.pose.position, dof_coord_dict[dof]) - \
                 self.cfg[f'{task}_suc_rand'][dof_i]
 
-        # self.arm_client._pos_limits[0, 0] = pose.pose.position.x + self.cfg[f'{task}_suc_rand'][0]
-        # self.arm_client._pos_limits[1, 0] = pose.pose.position.x - self.cfg[f'{task}_suc_rand'][0]
-        # self.arm_client._pos_limits[0, 1] = pose.pose.position.y + self.cfg[f'{task}_suc_rand'][1]
-        # self.arm_client._pos_limits[1, 1] = pose.pose.position.y - self.cfg[f'{task}_suc_rand'][1]
-
         suc_obs = []
         for i in range(num_ex):
             rand_act = self.action_space.sample() * rand_act_scaler
@@ -113,13 +106,6 @@ class PandaDoor(PandaEnv):
         self.arm_client._pos_limits = orig_pos_limits
 
         return np.stack(suc_obs)
-
-    # def prepare_obs(self):
-    #     # # first need to get obj pose for _obj_poses dict
-    #     # self._obj_poses['reach_goal'] = self.cfg['reach_goal']
-    #     # self._obj_poses['aux_reach_goal'] = self.cfg['aux_reach_goal']
-
-    #     return super().prepare_obs()
 
     def get_aux_rew(self, info, tasks=VALID_AUX_TASKS, **kwargs):
         obs_dict = info['obs_dict']
@@ -158,3 +144,28 @@ class SimPandaDoor(PandaDoor):
             config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'sim_door.yaml')
         config_dict['server_ip'] = 'localhost'
         super().__init__(config_dict=config_dict, config_file=config_file)
+
+
+class PandaDoorLongEp(PandaDoor):
+    def __init__(self, config_dict={}, config_file=None):
+        config_dict['max_real_time'] = 200.0
+        config_dict['done_on_success'] = True
+
+        super().__init__(config_dict, config_file)
+
+
+class PandaDoorAngle(PandaDoor):
+    def __init__(self, config_dict={}, config_file=None):
+        if config_file is None:
+            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'door_angle.yaml')
+        super().__init__(config_dict, config_file)
+
+
+class PandaDoorAngleLongEp(PandaDoor):
+    def __init__(self, config_dict={}, config_file=None):
+        if config_file is None:
+            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'door_angle.yaml')
+        config_dict['max_real_time'] = 200.0
+        config_dict['done_on_success'] = True
+
+        super().__init__(config_dict, config_file)

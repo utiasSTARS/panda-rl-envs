@@ -3,6 +3,8 @@
 - short real time exploratory videos at each checkpoint (0, 5k, 10k, 15k, 20k, 25k)
 - timelapse of 1000 steps at each checkpoint
 - photos of success states
+  - just take screenshots from high performing exploratory/success policies
+  - instead, rerecording these manually...from approximately 10:45am June 5
 - performance of main task at 25k (or 30k if we use that) (can use visualize model)
 
 - performance in paper could show during training evaluation only, instead of final task eval

@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--env', type=str, default='SimPandaReach')
 parser.add_argument('--num_ex', type=int, default=1200)
 parser.add_argument('--aux_tasks', type=str, default="")
+parser.add_argument('--no_save', action='store_true')
 args = parser.parse_args()
 
 
@@ -34,7 +35,8 @@ for t, suc_ex in suc_ex_dict.items():
         info = {c.DISCOUNTING: 1}
         buffer.push(obs, np.zeros(1), np.zeros(action_dim), 0., True, info, next_obs=obs, next_h_state=np.zeros(1))
 
-    os.makedirs('data', exist_ok=True)
+    if not args.no_save:
+        os.makedirs('data', exist_ok=True)
 
-    buf_str_post = "" if t == "main" else f"_{t}"
-    buffer.save(f"data/{args.env}{buf_str_post}.gz", end_with_done=False)
+        buf_str_post = "" if t == "main" else f"_{t}"
+        buffer.save(f"data/{args.env}{buf_str_post}.gz", end_with_done=False)
