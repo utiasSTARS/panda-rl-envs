@@ -35,6 +35,7 @@ parser.add_argument('--model_max', type=int, default=100000)
 parser.add_argument('--device', type=str, default='cuda:0')
 parser.add_argument('--num_eval_eps', type=int, default=10)
 parser.add_argument('--stochastic', action='store_true')
+parser.add_argument('--max_ep_steps', type=int, default=60)
 args = parser.parse_args()
 
 
@@ -69,10 +70,15 @@ config_path = os.path.join(main_model_path, config_file)
 model_paths = sorted(glob.glob(os.path.join(main_model_path, '*0.pt')))
 model_ints = [int(m.split('/')[-1].split('.pt')[0]) for m in model_paths]
 
+# sort ints and paths in incremental order
+sorted_ints = np.argsort(np.array(model_ints))
+model_ints = [model_ints[i] for i in sorted_ints]
+model_paths = [model_paths[i] for i in sorted_ints]
+
 # get number of valid aux tasks from one ex model
 config, _, _ = load_model(0, config_path, model_paths[0], args.aux_task,
                           include_env=False, device=args.device, include_disc=False, force_egl=False)
-num_aux_tasks = config[c.NUM_TASKS]
+num_aux_tasks = config.get(c.NUM_TASKS, 1)
 
 train_file_path = os.path.join(main_model_path, 'train.pkl')
 train_file_dict = pickle.load(open(train_file_path, 'rb'))
@@ -101,14 +107,16 @@ safe_save_train_dict(train_file_dict, train_file_path)
 
 models_to_test = []
 model_ints_to_test = []
-for m_path, m_int in zip(model_paths, model_ints):
+model_int_i_to_test = []
+for m_int_i, (m_path, m_int) in enumerate(zip(model_paths, model_ints)):
     if args.model_min < m_int < args.model_max:
         models_to_test.append(m_path)
         model_ints_to_test.append(m_int)
+        model_int_i_to_test.append(m_int_i)
 
 env = None
 
-for m_path, m_int in zip(models_to_test, model_ints_to_test):
+for m_int_i, m_path, m_int in zip(model_int_i_to_test, models_to_test, model_ints_to_test):
     # check where we are in testing
     valid_eval = train_file_dict['valid_eval'][m_int][args.aux_task]
     if np.all(valid_eval):
@@ -121,6 +129,8 @@ for m_path, m_int in zip(models_to_test, model_ints_to_test):
     else:
         config, buffer_preprocessing, agent = load_model(args.eval_seed, config_path, m_path, args.aux_task,
                                         args.device, include_env=False, include_disc=False)
+    
+    env.unwrapped._max_episode_steps = args.max_ep_steps
 
     aux_rew, aux_suc = get_aux_rew_aux_suc(config, env)
 
@@ -154,8 +164,9 @@ for m_path, m_int in zip(models_to_test, model_ints_to_test):
         train_file_dict['valid_eval'][m_int][args.aux_task][ep_i] = 1
 
         ep_i_in_full_array = args.aux_task * args.num_eval_eps + ep_i
-        train_file_dict['evaluation_successes_all_tasks'][args.aux_task][:, ep_i_in_full_array] = all_suc.flatten()
-        train_file_dict['evaluation_returns'][args.aux_task][:, ep_i_in_full_array] = rets.flatten()
+        train_file_dict['evaluation_successes_all_tasks'][m_int_i][:, ep_i_in_full_array] = all_suc.flatten()
+        train_file_dict['evaluation_returns'][m_int_i][:, ep_i_in_full_array] = rets.flatten()
+
         rng_state_dict = get_rng_state()
         for rng_k, rng_v in rng_state_dict.items():
             train_file_dict[f"eval_{rng_k}"] = rng_v

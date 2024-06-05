@@ -19,4 +19,14 @@
   - [x] needs to handle case where script stopped running...save data after every evaluated episode
 - [x] run single task sqil on env and get same data as all of above
   - [x] run this while developing and testing the other code simultaneously
-  - [ ] getting DAC (both with no q over max penalty), and might get RCE as well if there's time
+  - [x] getting DAC (both with no q over max penalty), and might get RCE as well if there's time
+  - [ ] rce if there's time/justification
+
+## instructions
+### exploratory videos
+args for run_vpace: --exp_name [original name] --load_model_name 5000 --load_buffer_start_index 5000
+
+### performance videos
+panda-rl-envs/tests/evaluate_models.py: --env_name [original name] --exp_name [original name] --algo [multi-sqil,sqil,disc,rce]
+- going to start at 25k to make sure that 10 eps actually succeeds as often as we want
+  - and worst case we just make our success metric more forgiving...
