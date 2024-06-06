@@ -1,3 +1,14 @@
+## open terminator/code/browser sessions
+- ada rt + gripper server
+- polykey + getpos + move to pos
+- training and eval
+- data gen + copy
+- cam + env testing (aruco client + panda_drawer_test)
+- results/data investigation
+- tensorboard
+- vscode for local devel, vscode for remote devel on realtime
+- chrome for panda desk at `https://192.168.2.2/desk/`
+
 ## todo
 - [x] eval for 5k-45k for door multi-sqil
 - [x] sqil train from scratch door
