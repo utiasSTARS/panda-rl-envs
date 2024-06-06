@@ -15,6 +15,7 @@ from rl_sandbox.algorithms.sac_x.schedulers import FixedScheduler
 
 
 def safe_save_train_dict(train_dict, path):
+    print("Saving train dict")
     os.rename(path, path + '.bak')
     pickle.dump(train_dict, open(path, 'wb'))
     os.remove(path + '.bak')
@@ -36,8 +37,11 @@ parser.add_argument('--device', type=str, default='cuda:0')
 parser.add_argument('--num_eval_eps', type=int, default=10)
 parser.add_argument('--stochastic', action='store_true')
 parser.add_argument('--max_ep_steps', type=int, default=60)
+parser.add_argument('--no_save', action='store_true')
 args = parser.parse_args()
 
+# forced schedule example: "{0: 3, 25: 2, 50: 4, 75: 5, 100: 1, 125: 3, 150: 4, 175: 2, 200: 1}"
+# for exploratory episodes, higher max steps, and explore "{0: 1, 20: 2, 40: 0, 60: 1, 80: 2, 100: 0}"
 
 # overwrite the train.pkl file in the experiment directory with a dictionary that contains:
 # - the values that are already in the train.pkl file (i.e. only append, don't delete)
@@ -50,7 +54,6 @@ args = parser.parse_args()
 # - add valid_eval parameter to dict, dict corresponding to each model to determine what is valid
 
 
-# TODO multitask not handled here yet
 forced_schedule = None if args.forced_schedule == "" else literal_eval(args.forced_schedule)
 
 if 'multi' in args.algo:
@@ -103,7 +106,8 @@ if 'eval_np_rng_state' not in train_file_dict:
 else:
     set_rng_state(train_file_dict['eval_torch_rng_state'], train_file_dict['eval_np_rng_state'])
 
-safe_save_train_dict(train_file_dict, train_file_path)
+if not args.no_save:
+    safe_save_train_dict(train_file_dict, train_file_path)
 
 models_to_test = []
 model_ints_to_test = []
@@ -117,11 +121,14 @@ for m_int_i, (m_path, m_int) in enumerate(zip(model_paths, model_ints)):
 env = None
 
 for m_int_i, m_path, m_int in zip(model_int_i_to_test, models_to_test, model_ints_to_test):
-    # check where we are in testing
-    valid_eval = train_file_dict['valid_eval'][m_int][args.aux_task]
-    if np.all(valid_eval):
-        print(f"All eval complete for {m_path}, moving on to next")
-        continue
+    if not args.no_save:
+        # check where we are in testing
+        valid_eval = train_file_dict['valid_eval'][m_int][args.aux_task]
+        if np.all(valid_eval):
+            print(f"All eval complete for {m_path}, moving on to next")
+            continue
+    else:
+        valid_eval = [False]
 
     if env is None:
         config, env, buffer_preprocessing, agent = load_model(args.eval_seed, config_path, m_path, args.aux_task,
@@ -161,14 +168,15 @@ for m_int_i, m_path, m_int in zip(model_int_i_to_test, models_to_test, model_int
                                            forced_schedule=forced_schedule,
                                            stochastic_policy=args.stochastic)
 
-        train_file_dict['valid_eval'][m_int][args.aux_task][ep_i] = 1
+        if not args.no_save:
+            train_file_dict['valid_eval'][m_int][args.aux_task][ep_i] = 1
 
-        ep_i_in_full_array = args.aux_task * args.num_eval_eps + ep_i
-        train_file_dict['evaluation_successes_all_tasks'][m_int_i][:, ep_i_in_full_array] = all_suc.flatten()
-        train_file_dict['evaluation_returns'][m_int_i][:, ep_i_in_full_array] = rets.flatten()
+            ep_i_in_full_array = args.aux_task * args.num_eval_eps + ep_i
+            train_file_dict['evaluation_successes_all_tasks'][m_int_i][:, ep_i_in_full_array] = all_suc.flatten()
+            train_file_dict['evaluation_returns'][m_int_i][:, ep_i_in_full_array] = rets.flatten()
+        
+            rng_state_dict = get_rng_state()
+            for rng_k, rng_v in rng_state_dict.items():
+                train_file_dict[f"eval_{rng_k}"] = rng_v
 
-        rng_state_dict = get_rng_state()
-        for rng_k, rng_v in rng_state_dict.items():
-            train_file_dict[f"eval_{rng_k}"] = rng_v
-
-        safe_save_train_dict(train_file_dict, train_file_path)
+            safe_save_train_dict(train_file_dict, train_file_path)

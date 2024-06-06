@@ -15,7 +15,7 @@ import panda_polymetis
 from panda_polymetis.utils.poses import geodesic_error
 from panda_polymetis.utils.rate import Rate
 from panda_polymetis.control.panda_client import PandaClient
-from panda_polymetis.control.panda_gripper_client import PandaGripperClient
+from panda_polymetis.control.panda_gripper_client import PandaGripperClient, DEFAULT_OPEN_WIDTH, DEFAULT_PINCH_WIDTH
 from panda_polymetis.perception.realsense_client import RealsenseAPI
 from panda_polymetis.perception.aruco_client import ArucoClient
 from transform_utils.pose_transforms import (
@@ -89,7 +89,11 @@ class PandaEnv(gym.Env):
 
         # gripper
         if self.cfg['grip_client']:
-            self.grip_client = PandaGripperClient(server_ip='localhost', fake=self.cfg['server_ip'] == 'localhost')
+            open_width = DEFAULT_OPEN_WIDTH
+            if self.cfg['pinch_gripper']:
+                open_width = DEFAULT_PINCH_WIDTH
+            self.grip_client = PandaGripperClient(server_ip='localhost', fake=self.cfg['server_ip'] == 'localhost',
+                            open_width=open_width)
 
         # observations
         self._obj_poses = OrderedDict()
@@ -187,7 +191,8 @@ class PandaEnv(gym.Env):
             new_arm_pose = PoseTransformer(
                     pose=matrix2pose(self._reset_base_tool_pose.get_matrix() @ reset_pose_shift_mat))
 
-        self.send_reset_poses(new_arm_pose)
+        # self.send_reset_poses(new_arm_pose)
+
         # if self.cfg['initial_reset_to_joints']:
         #     if self.arm_client.sim:
         #         self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.5)
@@ -206,7 +211,8 @@ class PandaEnv(gym.Env):
                 for pose, ttg in zip(self.cfg['auto_reset_poses'], self.cfg['auto_reset_pose_times']):
                     pose_tf = PoseTransformer(pose=pose, rotation_representation='euler', axes='sxyz')
                     self.arm_client.move_EE_to(pose_tf, time_to_go=ttg)
-                self.send_reset_poses(new_arm_pose)
+                
+        self.send_reset_poses(new_arm_pose)
 
         self.arm_client.start_controller()
         attempts = 0
@@ -229,13 +235,14 @@ class PandaEnv(gym.Env):
         return obs
 
     def send_reset_poses(self, new_arm_pose):
+        # print("SEND RESET CALLD")
         if self.cfg['initial_reset_to_joints']:
             if self.arm_client.sim:
                 self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.5)
             else:
                 self.arm_client.move_to_joint_positions(self.cfg['reset_joints'], allowable_error=0.1)
 
-        self.arm_client.move_EE_to(new_arm_pose, time_to_go=1.)  # blocks to move
+        self.arm_client.move_EE_to(new_arm_pose, time_to_go=2.0)  # blocks to move
         self.arm_client.reset(target_pose=new_arm_pose, init_pose=new_arm_pose)  # resets current desired poses
 
     def prepare_obs(self):
@@ -370,7 +377,7 @@ class PandaEnv(gym.Env):
             obs, obs_dict, rew, done, info = self._get_obs_rew_done_info(act=act)
             print(f"Policy not running on robot..possibly reflex error? Check server terminal.")
             print(f"Ending episode and attempting reset...")
-            self.reset()
+            # self.reset()
 
             # if not self.arm_client.robot.is_running_policy():
             # print(f"Activating freedrive and ending episode.")

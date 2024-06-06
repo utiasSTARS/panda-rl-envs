@@ -46,4 +46,4 @@ aruco_marker_to_obj_tf: [0., 0., 0., 0., 0., 0.]
 # gripper
 grip_client: true  # can have grip client to force gripper open without having gripper in action
 grip_in_action: true
-
+pinch_gripper: false

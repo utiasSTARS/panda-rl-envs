@@ -169,3 +169,20 @@ class PandaDoorAngleLongEp(PandaDoor):
         config_dict['done_on_success'] = True
 
         super().__init__(config_dict, config_file)
+
+
+class PandaDoorNoJamAngle(PandaDoor):
+    def __init__(self, config_dict={}, config_file=None):
+        if config_file is None:
+            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'door_nojam_angle.yaml')
+        super().__init__(config_dict, config_file)
+
+
+class PandaDoorNoJamAngleLongEp(PandaDoor):
+    def __init__(self, config_dict={}, config_file=None):
+        if config_file is None:
+            config_file = os.path.join(pathlib.Path(__file__).parent.resolve(), 'cfgs', 'door_nojam_angle.yaml')
+        config_dict['max_real_time'] = 200.0
+        config_dict['done_on_success'] = True
+
+        super().__init__(config_dict, config_file)
