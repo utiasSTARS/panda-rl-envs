@@ -1,12 +1,17 @@
 # panda-rl-envs
-Real Panda RL tasks/environments.
+Real Panda/FR3 (inverse) reinforcement learning tasks/environments.
+Used experimentally with [VPACE](https://github.com/utiasSTARS/vpace).
+
+<p float="middle">
+   <img src="https://github.com/utiasSTARS/panda-rl-envs/blob/main/assets/door-30k-explore-timelapse.gif" width="49%" />
+   <img src="https://github.com/utiasSTARS/panda-rl-envs/blob/main/assets/drawer-15k-explore-timelapse.gif" width="49%" />
+   <div><small>Examples of learning agents using the code in this repository.</small></div>
+</p>
 
 ## Installation
-1. Install [transform-utils](https://github.com/utiasSTARS/transform-utils)
-2. Install [polymetis](https://facebookresearch.github.io/fairo/polymetis/installation.html)
-   1. Needs to be installed on learning/policy machine AND on real-time NUC
-   2. NUC version must be built from scratch (see more details in [panda-polymetis](https://github.com/utiasSTARS/panda-polymetis) instructions)
-3. Install [panda-polymetis](https://github.com/utiasSTARS/panda-polymetis)
+1. Install [panda-polymetis](https://github.com/utiasSTARS/panda-polymetis) (and [polymetis](https://facebookresearch.github.io/fairo/polymetis/installation.html), following instructions in `panda-polymetis` repo).
+2. Activate `polymetis` conda env.
+3. Install [transform-utils](https://github.com/utiasSTARS/transform-utils)
 4. Install this repo (`pip install -e .`)
 
 ## Usage
@@ -32,3 +37,6 @@ To get quick access to teaching (without stopping the controller), keyboard cont
 ```bash
 python -m panda_polymetis.tools.keyboard_interface
 ```
+
+## Citation
+If you find this repository useful for your work, please consider citing [VPACE](https://github.com/utiasSTARS/vpace).
