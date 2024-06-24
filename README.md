@@ -1,12 +1,11 @@
 # panda-rl-envs
-Real Panda/FR3 (inverse) reinforcement learning tasks/environments.
-Used experimentally with [VPACE](https://github.com/utiasSTARS/vpace).
-
 <p float="middle">
    <img src="https://github.com/utiasSTARS/panda-rl-envs/blob/main/assets/door-30k-explore-timelapse.gif" width="49%" />
    <img src="https://github.com/utiasSTARS/panda-rl-envs/blob/main/assets/drawer-15k-explore-timelapse.gif" width="49%" />
-   <div><small>Examples of learning agents using the code in this repository.</small></div>
 </p>
+
+Real Panda/FR3 (inverse) reinforcement learning tasks/environments.
+Used experimentally with [VPACE](https://github.com/utiasSTARS/vpace).
 
 ## Installation
 1. Install [panda-polymetis](https://github.com/utiasSTARS/panda-polymetis) (and [polymetis](https://facebookresearch.github.io/fairo/polymetis/installation.html), following instructions in `panda-polymetis` repo).
