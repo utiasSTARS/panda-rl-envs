@@ -10,8 +10,7 @@ Used experimentally with [VPACE](https://github.com/utiasSTARS/vpace).
 ## Installation
 1. Install [panda-polymetis](https://github.com/utiasSTARS/panda-polymetis) (and [polymetis](https://facebookresearch.github.io/fairo/polymetis/installation.html), following instructions in `panda-polymetis` repo).
 2. Activate `polymetis` conda env.
-3. Install [transform-utils](https://github.com/utiasSTARS/transform-utils)
-4. Install this repo (`pip install -e .`)
+3. Install this repo (`pip install -e .`)
 
 ## Usage
 1. Launch robot controller
