@@ -23,7 +23,7 @@ Used experimentally with [VPACE](https://github.com/utiasSTARS/vpace).
 ```python
 from panda_rl_envs import *
 
-env = PandaExploreEnv()
+env = SimPandaReach()
 obs = env.reset()
 
 for i in range(10):
